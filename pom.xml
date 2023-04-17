@@ -35,7 +35,6 @@
 			<artifactId>java-telegram-bot-api</artifactId>
 			<version>6.6.1</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -47,7 +46,6 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
 	<build>
 		<plugins>
 			<plugin>
@@ -64,5 +62,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>

@@ -10,4 +10,5 @@ public class Welcome {
         String name = scanner.nextLine();
         System.out.println("Здравствуйте " + name);
     }
+
 }

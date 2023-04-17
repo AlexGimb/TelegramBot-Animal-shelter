@@ -9,5 +9,4 @@ class TelegramBotAnimalShelterApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-
 }
