@@ -29,6 +29,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.github.pengrad/java-telegram-bot-api -->
+		<dependency>
+			<groupId>com.github.pengrad</groupId>
+			<artifactId>java-telegram-bot-api</artifactId>
+			<version>6.6.1</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -40,12 +46,8 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.github.pengrad</groupId>
-			<artifactId>java-telegram-bot-api</artifactId>
-			<version>6.6.1</version>
-		</dependency>
 	</dependencies>
+
 	<build>
 		<plugins>
 			<plugin>
