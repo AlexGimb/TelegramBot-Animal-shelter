@@ -9,5 +9,6 @@ public class Welcome {
         System.out.println("Введите Ваше имя:");
         String name = scanner.nextLine();
         System.out.println("Здравствуйте " + name);
+
     }
 }
