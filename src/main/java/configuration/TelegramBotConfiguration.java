@@ -1,11 +1,7 @@
 package configuration;
 
-import com.pengrad.telegrambot.TelegramBot;
-import com.pengrad.telegrambot.model.DeleteMyCommands;
 import lombok.SneakyThrows;
 import model.AnimalShelterBot;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
