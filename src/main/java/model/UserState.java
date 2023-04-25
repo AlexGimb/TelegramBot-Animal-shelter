@@ -6,7 +6,12 @@ public class UserState {
 
     private String shelter;
     public static final int SELECT_SHELTER = 1;
-    public static final int SELECT_ACTION = 2;
+    public static final int SELECT_ACTION_CAT = 2;
+    public static final int SELECT_ACTION_DOG = 3;
+    public static final int SHELTER_INFO = 4;
+    public static final int HOW_TO_ADOPT = 5;
+    public static final int PET_REPORT = 6;
+    public static final int CALL_VOLUNTEER = 7;
 
     public UserState() {
         this.stage = 0;

@@ -24,9 +24,6 @@ public class AnimalShelterBot extends TelegramLongPollingBot {
     // лист кнопок
     List<KeyboardRow> keyboard = new ArrayList<>();
     TelegramBotConfiguration config;
-
-    private static final String CATS = "Приют для кошек";
-    private static final String DOGS = "Приют для собак";
     @SneakyThrows
     @Override
     // Возвращает имя нашего бота
@@ -54,77 +51,133 @@ public class AnimalShelterBot extends TelegramLongPollingBot {
             User user = message.getFrom();
             // имя пользователя
             String firstName = user.getFirstName();
+            // создаем кнопки
+            KeyboardButton catButton = new KeyboardButton("Приют для кошек");
+            KeyboardButton dogButton = new KeyboardButton("Приют для собак");
+            KeyboardButton infoButton = new KeyboardButton("Узнать информацию о приюте");
+            KeyboardButton takeAnAnimalButton = new KeyboardButton("Как взять животное из приюта");
+            KeyboardButton reportButton = new KeyboardButton("Прислать отчет о питомце");
+            KeyboardButton volunteerButton = new KeyboardButton("Позвать волонтера");
+            KeyboardButton BackToMenuShelterButton = new KeyboardButton("Вернуться в меню выбора приюта");
+            // создаем строки клавиатуры и добавляем в нее кнопки
+            KeyboardRow shelter = new KeyboardRow();
+            shelter.add(catButton);
+            shelter.add(dogButton);
+            KeyboardRow row1 = new KeyboardRow();
+            row1.add(infoButton);
+            row1.add(takeAnAnimalButton);
+            KeyboardRow row2 = new KeyboardRow();
+            row2.add(reportButton);
+            row2.add(volunteerButton);
+            KeyboardRow row3 = new KeyboardRow();
+            row3.add(BackToMenuShelterButton);
+            // создаем список строк клавиатуры и добавляем в него строку с кнопками
+            List<KeyboardRow> keyboard = new ArrayList<>();
+            List<KeyboardRow> keyboard1 = new ArrayList<>();
+            keyboard.add(shelter);
+            keyboard1.add(row1);
+            keyboard1.add(row2);
+            keyboard1.add(row3);
+            // создаем объект клавиатуры
+            ReplyKeyboardMarkup keyboardMenuShelter = new ReplyKeyboardMarkup(keyboard);
+            ReplyKeyboardMarkup keyboardMenu = new ReplyKeyboardMarkup(keyboard1);
+            // указывает, что клавиатура должна изменять размер, чтобы соответствовать количеству кнопок, которые мы добавляем в неё.
+            keyboardMenuShelter.setResizeKeyboard(true);
+            keyboardMenu.setResizeKeyboard(true);
+            // указывает, что клавиатура должна исчезнуть после того, как пользователь выберет одну из кнопок.
+            keyboardMenuShelter.setOneTimeKeyboard(true);
+            keyboardMenu.setOneTimeKeyboard(true);
+            // указывает, что клавиатура будет показана только тем пользователям, которые взаимодействуют с ботом, а не всем пользователям, которые видят сообщение от бота в групповом чате.
+            keyboardMenuShelter.setSelective(true);
+            keyboardMenu.setSelective(true);
             // проверяем, является ли пользователь новым или уже общался с ботом ранее
             if (!users.containsKey(chatId)) {
                 // если пользователь новый, приветствуем его и запрашиваем выбор приюта
-                sendMessage(chatId, "Привет, " + firstName + "! Я бот, который поможет тебе найти питомца. Я могу помочь тебе найти приют для кошек или для собак. Какой приют тебя интересует?");
-                // создаем кнопки
-                KeyboardButton button1 = new KeyboardButton("Приют для кошек");
-                KeyboardButton button2 = new KeyboardButton("Приют для собак");
-                // создаем строку клавиатуры и добавляем в нее кнопки
-                KeyboardRow shelter = new KeyboardRow();
-                shelter.add(button1);
-                shelter.add(button2);
-                // создаем список строк клавиатуры и добавляем в него строку с кнопками
-                List<KeyboardRow> keyboard = new ArrayList<>();
-                keyboard.add(shelter);
-                // создаем объект клавиатуры
-                ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup(keyboard);
-                // указывает, что клавиатура должна изменять размер, чтобы соответствовать количеству кнопок, которые мы добавляем в неё.
-                keyboardMarkup.setResizeKeyboard(true);
-                // указывает, что клавиатура должна исчезнуть после того, как пользователь выберет одну из кнопок.
-                keyboardMarkup.setOneTimeKeyboard(true);
-                // указывает, что клавиатура будет показана только тем пользователям, которые взаимодействуют с ботом, а не всем пользователям, которые видят сообщение от бота в групповом чате.
-                keyboardMarkup.setSelective(true);
-                // отправляем клавиатуру пользователю
-                sendMessage(chatId, "Выберите приют:", keyboardMarkup);
+                sendMessage(chatId, "Привет, " + firstName + "! Я бот, который поможет тебе найти питомца. Я могу помочь тебе найти приют для кошек или для собак");
                 // добавляем нового пользователя в мапу
                 UserState userState = new UserState();
                 users.put(chatId, userState);
-                userState.setStage(UserState.SELECT_ACTION);
+                sendMessage(chatId, "Выберите приют:", keyboardMenuShelter);
+                userState.setStage(UserState.SELECT_SHELTER);
             } else {
                 // пользователь уже начал общение, определяем текущий этап
                 UserState userState = users.get(chatId);
                 switch (userState.getStage()) {
                     case UserState.SELECT_SHELTER:
-                        // пользователь выбрал приют, предлагаем дальнейшие действия
-                        if (text.equals("Приют для кошек")) {
-                            userState.setShelter(CATS);
+                        // отправляем клавиатуру пользователю
+                        if (text.equals("Вернуться в меню выбора приюта")) {
+                            sendMessage(chatId, "Выберите приют:", keyboardMenuShelter);
+                            break;
+                        }else if (text.equals("Приют для кошек")) {
+                            userState.setStage(UserState.SELECT_ACTION_CAT);
+                            break;
                         } else if (text.equals("Приют для собак")) {
-                            userState.setShelter(DOGS);
+                            userState.setStage(UserState.SELECT_ACTION_DOG);
+                            break;
                         } else {
                             // пользователь выбрал неверный вариант, предлагаем позвать волонтера
-                            sendMessage(chatId, "Я не понимаю, что вы хотите. Хотите, чтобы я позвал волонтера?");
-                            userState.setStage(Stage.CALL_VOLUNTEER.ordinal());
+                            sendMessage(chatId, "Я не понимаю, что вы хотите. В ближайшее время с вами свяжется волонтер");
+                            userState.setStage(UserState.SELECT_SHELTER);
                             break;
                         }
-                    case UserState.SELECT_ACTION:
+                    // пользователь выбрал приют, предлагаем дальнейшие действия
+                    case UserState.SELECT_ACTION_CAT:
                         // предлагаем дальнейшие действия
-                        KeyboardButton button1 = new KeyboardButton("Узнать информацию о приюте");
-                        KeyboardButton button2 = new KeyboardButton("Как взять животное из приюта");
-                        KeyboardButton button3 = new KeyboardButton("Прислать отчет о питомце");
-                        KeyboardButton button4 = new KeyboardButton("Позвать волонтера");
-                        KeyboardRow row1 = new KeyboardRow();
-                        row1.add(button1);
-                        row1.add(button2);
-                        KeyboardRow row2 = new KeyboardRow();
-                        row2.add(button3);
-                        row2.add(button4);
-                        List<KeyboardRow> keyboard1 = new ArrayList<>();
-                        keyboard1.add(row1);
-                        keyboard1.add(row2);
-                        ReplyKeyboardMarkup keyboardMenu = new ReplyKeyboardMarkup(keyboard1);
-                        keyboardMenu.setResizeKeyboard(true);
-                        keyboardMenu.setOneTimeKeyboard(true);
-                        keyboardMenu.setSelective(true);
                         sendMessage(chatId, "Выберите действие:", keyboardMenu);
                         if (text.equals("Узнать информацию о приюте")) {
+                            sendMessage(chatId, "Приют для кошек Мурёнка расположен на  территории, " +
+                                    "на которой размещены отдельные утепленные домики с летним выгулом для кошечек и хозяйственные пристройки," +
+                                    " различного назначения.\n" +
+                                    "Имеется ветеринарный блок с карантинным помещением и изолятором. " +
+                                    "Все животные проходят вакцинацию против инфекционных заболеваний, " +
+                                    "опасных для человека, обработку против экто и эндопаразитов, стерилизации и кастрацию, " +
+                                    "также ежедневно осуществляется клинический осмотр животных.\n" +
+                                    "Кормят кошек  профессиональными  кормами, как сухими, так и жидкими в соответствии с " +
+                                    "рекомендациями ветеринарных врачей и физиологическими особенностями. " +
+                                    "За каждым животным закреплён специальный сотрудник по уходу, который персонально отвечает за них, " +
+                                    "расчёсывает, играет.");
+                            break;
                         } else if (text.equals("Как взять животное из приюта")) {
                             sendMessage(chatId, "Для того чтобы взять животное, вам необходимо связаться с работником приюта");
+                            break;
                         } else if (text.equals("Прислать отчет о питомце")) {
                             sendMessage(chatId, "Мы получили ваш запрос на отчет. Ожидайте ответа работника приюта.");
+                            break;
                         } else if (text.equals("Позвать волонтера")) {
                             sendMessage(chatId, "Передал информацию, в ближайшее время с вами свяжется волонтер");
+                            break;
+                        } else if (text.equals("Вернуться в меню выбора приюта")) {
+                            userState.setStage(UserState.SELECT_SHELTER);
+                            break;
+                        }
+                        break;
+                    case UserState.SELECT_ACTION_DOG:
+                        // предлагаем дальнейшие действия
+                        sendMessage(chatId, "Выберите действие:", keyboardMenu);
+                        if (text.equals("Узнать информацию о приюте")) {
+                            sendMessage(chatId, "Приют расположен на большой территории, на которой размещены утеплённые вольеры, " +
+                                    "выгульные площадки и хозяйственные пристройки.\n" +
+                                    "Имеется ветеринарный блок с карантинным помещением и изолятором. " +
+                                    "Все животные проходят вакцинацию против инфекционных заболеваний, " +
+                                    "опасных для человека, обработку против экто и эндопаразитов, стерилизацию и кастрацию, " +
+                                    "также ежедневно осуществляется клинический осмотр животных.\n" +
+                                    "Кормят собак профессиональными сухими кормами в соответствии с рекомендациями ветеринарных врачей " +
+                                    "и физиологическими особенностями. За каждым животным закреплён специальный сотрудник по уходу, " +
+                                    "который персонально отвечает за него, выгуливает, расчёсывает, играет, " +
+                                    "учит собак элементарным командам и ходить на поводке – адаптирует собак к будущей домашней жизни.");
+                            break;
+                        } else if (text.equals("Как взять животное из приюта")) {
+                            sendMessage(chatId, "Для того чтобы взять животное, вам необходимо связаться с работником приюта");
+                            break;
+                        } else if (text.equals("Прислать отчет о питомце")) {
+                            sendMessage(chatId, "Мы получили ваш запрос на отчет. Ожидайте ответа работника приюта.");
+                            break;
+                        } else if (text.equals("Позвать волонтера")) {
+                            sendMessage(chatId, "Передал информацию, в ближайшее время с вами свяжется волонтер");
+                            break;
+                        } else if (text.equals("Вернуться в меню выбора приюта")) {
+                            userState.setStage(UserState.SELECT_SHELTER);
+                            break;
                         }
                         break;
                 }
