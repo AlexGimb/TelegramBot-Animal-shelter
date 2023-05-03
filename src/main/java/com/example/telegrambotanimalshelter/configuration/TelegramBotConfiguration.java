@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Класс, реализующий настройку бота
+ */
 @Configuration
 public class TelegramBotConfiguration {
     @Bean
