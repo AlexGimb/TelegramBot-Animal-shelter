@@ -54,6 +54,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         try {
             updates.stream()
+                    .filter(update -> update.message() != null)
                     .forEach(update -> {
                         if (update.callbackQuery() != null) {
                             logger.info("Processing update: {}", update);
@@ -83,9 +84,10 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                             String text = message.text();
                             Long chatId = message.chat().id();
 
-                            switch (text) {
-                                case "/start" -> sendStartMessage(chatId);
-                                default -> sendDefaultMessage(chatId);
+                            if (text.equals("/start")) {
+                                sendStartMessage(chatId);
+                            } else {
+                                sendDefaultMessage(chatId);
                             }
                         }
                     });
@@ -100,8 +102,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                 new InlineKeyboardButton("Кошки").callbackData("cats"),
                 new InlineKeyboardButton("Собаки").callbackData("dogs"));
         SendMessage sendMessage = new SendMessage(chatId, "Привет! Я бот-помощник для поиска приюта для животных. " +
-                "Я могу помочь тебе выбрать приют для кошек или для собак. " +
-                "Выбери, пожалуйста, один из приютов:");
+                "Я могу помочь тебе выбрать приют для кошек или для собак. Выбери, пожалуйста, один из приютов:");
         sendMessage.replyMarkup(inlinekeyboardMarkup);
         sendTelegramMessage(sendMessage);
     }
