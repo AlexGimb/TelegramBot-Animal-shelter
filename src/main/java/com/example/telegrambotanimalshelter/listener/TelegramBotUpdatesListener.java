@@ -12,22 +12,41 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.util.List;
 
+/**
+ * Класс, реализующий функцию обращения к Telegram API и получения обновлений
+ */
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
-
-    private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class); //логирование
-
+    /**
+     * Поле класса для логирования
+     */
+    private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
+    /**
+     * Внедрение зависимостей Телеграмм бот
+     */
     private final TelegramBot telegramBot;
 
+    /**
+     * Конструктор TelegramBotUpdatesListener
+     * @param telegramBot
+     */
     public TelegramBotUpdatesListener(TelegramBot telegramBot) {
         this.telegramBot = telegramBot;
     }
 
+    /**
+     * Метод инициализации обновлений телеграмм бота
+     */
     @PostConstruct
     public void init() {
         telegramBot.setUpdatesListener(this);
     }
 
+    /**
+     * Метод, осуществляющий получение массива обновлений и реализующий логику согласно, полученных данных
+     * @param updates
+     * @return
+     */
     @Override
     public int process(List<Update> updates) {
         try {
@@ -178,7 +197,12 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
 
-    @Nullable // внутренний метод для отправки сообщений боту и получения ответа
+    /**
+     * Внутренний метод для отправки сообщений боту и получения ответа
+     * @param chatId
+     * @param message
+     */
+    @Nullable
     private void sendMessage(Long chatId, String message) {
         SendMessage sendMessage = new SendMessage(chatId, message);
         SendResponse sendResponse = telegramBot.execute(sendMessage);
