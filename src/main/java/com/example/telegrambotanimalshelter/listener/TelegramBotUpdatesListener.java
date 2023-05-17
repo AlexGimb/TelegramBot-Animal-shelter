@@ -54,7 +54,6 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         try {
             updates.stream()
-                    .filter(update -> update.message() != null)
                     .forEach(update -> {
                         if (update.callbackQuery() != null) {
                             logger.info("Processing update: {}", update);
