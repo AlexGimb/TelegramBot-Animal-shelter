@@ -33,6 +33,7 @@ public class CatOwner {
     /** Поле кошки, заполняется волонтером после передачи животного.
      * Правило: На испытательный срок - одно животное в одни руки.
      */
+
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "cat_id")
     private Cat cat;
@@ -130,14 +131,6 @@ public class CatOwner {
         this.statusPetOwner = statusPetOwner;
     }
 
-    public Cat getCat() {
-        return cat;
-    }
-
-    public void setCat(Cat cat) {
-        this.cat = cat;
-    }
-
     public List<ReportCat> getReportList() {
         return reportCatList;
     }
@@ -152,5 +145,13 @@ public class CatOwner {
 
     public void setFinish(LocalDate finish) {
         this.finish = finish;
+    }
+
+    public Cat getCat() {
+        return cat;
+    }
+
+    public void setCat(Cat cat) {
+        this.cat = cat;
     }
 }

@@ -1,4 +1,4 @@
-package com.example.telegrambotanimalshelter.dto;
+package com.example.telegrambotanimalshelter.dto.dog;
 
 import com.example.telegrambotanimalshelter.entity.*;
 import com.example.telegrambotanimalshelter.entity.enums.ColorOfPet;
@@ -7,7 +7,7 @@ import com.example.telegrambotanimalshelter.entity.enums.StatusOfPet;
 
 import java.util.Objects;
 
-public record DogDTO (long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
+public record DogDTO (Long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
                       StatusOfPet status, Long dogOwner) {
 
     public static DogDTO dogToDTO(Dog dog) {
@@ -19,7 +19,7 @@ public record DogDTO (long id, String nickName, int birthYear, GenderOfPet gende
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DogDTO dogDTO = (DogDTO) o;
-        return birthYear == dogDTO.birthYear && dogOwner == dogDTO.dogOwner && Objects.equals(nickName, dogDTO.nickName) && gender == dogDTO.gender && color == dogDTO.color && Objects.equals(species, dogDTO.species) && Objects.equals(description, dogDTO.description) && status == dogDTO.status;
+        return birthYear == dogDTO.birthYear && Objects.equals(nickName, dogDTO.nickName) && gender == dogDTO.gender && color == dogDTO.color && Objects.equals(species, dogDTO.species) && Objects.equals(description, dogDTO.description) && status == dogDTO.status && Objects.equals(dogOwner, dogDTO.dogOwner);
     }
 
     @Override

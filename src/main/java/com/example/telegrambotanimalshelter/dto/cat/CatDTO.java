@@ -1,4 +1,4 @@
-package com.example.telegrambotanimalshelter.dto;
+package com.example.telegrambotanimalshelter.dto.cat;
 import com.example.telegrambotanimalshelter.entity.Cat;
 import com.example.telegrambotanimalshelter.entity.enums.ColorOfPet;
 import com.example.telegrambotanimalshelter.entity.enums.GenderOfPet;
@@ -6,8 +6,8 @@ import com.example.telegrambotanimalshelter.entity.enums.StatusOfPet;
 
 import java.util.Objects;
 
-public record CatDTO (long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
-                          StatusOfPet status, Long catOwner) {
+public record CatDTO (Long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
+                      StatusOfPet status, Long catOwner) {
 
         public static CatDTO catToDTO(Cat cat) {
             return new CatDTO(cat.getId(), cat.getNickName(), cat.getBirthYear(), cat.getGender(), cat.getColor(), cat.getSpecies(), cat.getDescription(), cat.getStatus(), cat.getCatOwner()!=null? cat.getCatOwner().idCatOwner() :0);

@@ -17,14 +17,14 @@ public class ReportCat {
     /**Поле владельца животного, который пишет отчёт*/
     private CatOwner catOwner;
 
-    @Column(length = 2048)
+    @Column(name = "changes", length = 2048)
     /**Поле с описанием рациона и режима питания, адаптации и состояния, а также изменений в поведении кошки*/
     private String catChanges;
-    @Column()
+    @Column(name = "report_date")
     /**Поле с датой и временем отправки отчёта*/
     private LocalDateTime reportDate;
     @Lob
-    @Column(columnDefinition="BLOB")
+    @Column(name = "photo", columnDefinition="BYTEA")
     private byte[] photoAsArrayOfBytes;
 
     public ReportCat() {

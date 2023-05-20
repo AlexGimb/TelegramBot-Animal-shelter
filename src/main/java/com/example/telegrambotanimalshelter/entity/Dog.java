@@ -11,6 +11,7 @@ import javax.persistence.*;
 public class Dog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "dog_id")
     private Long id;
 
     @Column(name = "nick_name")
@@ -36,7 +37,7 @@ public class Dog {
     private StatusOfPet status;
 
     @OneToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_dog_owner")
+    @JoinColumn(name = "idDogOwner")
     private DogOwner dogOwner;
 
     public Dog() {

@@ -11,6 +11,7 @@ import javax.persistence.*;
 public class Cat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cat_id")
     private Long id;
 
     @Column(name = "nick_name")
@@ -54,6 +55,7 @@ public class Cat {
         this.status = status;
         this.catOwner = catOwner;
     }
+
     public Cat(long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
                StatusOfPet status) {
         this.id = id;
