@@ -1,7 +1,7 @@
 package com.example.telegrambotanimalshelter.entity;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+
     @Entity
     @Table(name = "saved_users")
     public class AppUser {
@@ -9,14 +9,24 @@ import java.time.LocalDateTime;
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private long id;
 
-        @Column(name = "phone", nullable = false)
-        private String email;
-
         @Column(name = "chat_id", nullable = false)
         private long chatId;
 
-        @Column(name = "time", nullable = false)
-        private LocalDateTime time;
+        @Column(name = "name", nullable = false)
+        private String name;
+
+        @Column(name = "phone", nullable = false)
+        private String phone;
+
+        public AppUser() {
+        }
+
+        public AppUser(long chatId, String name, String phone) {
+            this.chatId = chatId;
+            this.name = name;
+            this.phone = phone;
+        }
+
 
         public long getId() {
             return id;
@@ -24,14 +34,6 @@ import java.time.LocalDateTime;
 
         public void setId(long id) {
             this.id = id;
-        }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
         }
 
         public long getChatId() {
@@ -42,12 +44,22 @@ import java.time.LocalDateTime;
             this.chatId = chatId;
         }
 
-        public LocalDateTime getNotificationDateTime() {
-            return time;
+        public String getName() {
+            return name;
         }
 
-        public void setNotificationDateTime(LocalDateTime notificationDateTime) {
-            this.time = notificationDateTime;
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getPhone() {
+            return phone;
+        }
+
+        public void setEmail(String email) {
+            this.phone = email;
         }
     }
+
+
 
