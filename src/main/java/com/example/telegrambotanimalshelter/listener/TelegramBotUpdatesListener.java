@@ -1,11 +1,12 @@
 package com.example.telegrambotanimalshelter.listener;
+import com.example.telegrambotanimalshelter.entity.AppUser;
+import com.example.telegrambotanimalshelter.repository.UserRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.CallbackQuery;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
-import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
-import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
+import com.pengrad.telegrambot.model.request.*;
 import com.pengrad.telegrambot.request.AnswerCallbackQuery;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
@@ -28,13 +29,15 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
      * Внедрение зависимостей Телеграмм бот
      */
     private final TelegramBot telegramBot;
+    private final UserRepository userRepository;
 
     /**
      * Конструктор TelegramBotUpdatesListener
      * @param telegramBot
      */
-    public TelegramBotUpdatesListener(TelegramBot telegramBot) {
+    public TelegramBotUpdatesListener(TelegramBot telegramBot,UserRepository userRepository) {
         this.telegramBot = telegramBot;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -53,9 +56,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     @Override
     public int process(List<Update> updates) {
         try {
-            updates.stream()
-                    .filter(update -> update.message() != null)
-                    .forEach(update -> {
+            updates.forEach(update -> {
                         if (update.callbackQuery() != null) {
                             logger.info("Processing update: {}", update);
                             CallbackQuery callbackQuery = update.callbackQuery();
@@ -72,6 +73,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                                 case "take" -> sendTakeMessage(chatId);
                                 case "send" -> sendSendMessage(chatId);
                                 case "help" -> sendHelpMessage(chatId);
+                                case "contacts" -> contactData(chatId);
                             }
 
                             // Отправка подтверждения о выполнении команды
@@ -87,7 +89,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                             if (text.equals("/start")) {
                                 sendStartMessage(chatId);
                             } else {
-                                sendDefaultMessage(chatId);
+                                saveUserInfo(chatId, text);
+//                            } else {
+//                                sendDefaultMessage(chatId);
                             }
                         }
                     });
@@ -100,7 +104,8 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     private void sendStartMessage(Long chatId) {
         InlineKeyboardMarkup inlinekeyboardMarkup = new InlineKeyboardMarkup(
                 new InlineKeyboardButton("Кошки").callbackData("cats"),
-                new InlineKeyboardButton("Собаки").callbackData("dogs"));
+                new InlineKeyboardButton("Собаки").callbackData("dogs"),
+                new InlineKeyboardButton("Оставить контакты").callbackData("contacts"));
         SendMessage sendMessage = new SendMessage(chatId, "Привет! Я бот-помощник для поиска приюта для животных. " +
                 "Я могу помочь тебе выбрать приют для кошек или для собак. Выбери, пожалуйста, один из приютов:");
         sendMessage.replyMarkup(inlinekeyboardMarkup);
@@ -180,8 +185,31 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         sendTelegramMessage(sendMessage);
     }
 
+    private void contactData(Long chatId) {
+        SendMessage sendMessage = new SendMessage(chatId, "Напишите ваше имя и номер телефона");
+        sendTelegramMessage(sendMessage);
+    }
+
+    private void saveUserInfo(Long chatId, String text) {
+        // Логика сохранения в БД
+        String[] parts = text.split(" ");
+        if (parts.length == 2) {
+            String userName = parts[0];
+            String userPhone = parts[1];
+            AppUser appUser = new AppUser(chatId, userName, userPhone);
+            userRepository.save(appUser);
+            saveUserInfoMessage(chatId);
+        }
+    }
+
+    private void saveUserInfoMessage(Long chatId) {
+        // Логика обработки кнопки InfoMessage
+        SendMessage sendMessage = new SendMessage(chatId, "Контактные данные сохранены");
+        sendTelegramMessage(sendMessage);
+    }
 
     private void sendDefaultMessage(Long chatId) {
+        // Сообщение по дефолту
         SendMessage sendMessage = new SendMessage(chatId, "Вы указали неверную команду. " +
                 "Пожалуйста, начните с выбора приюта");
         sendTelegramMessage(sendMessage);
