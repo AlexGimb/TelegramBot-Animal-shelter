@@ -9,14 +9,24 @@ import java.time.LocalDateTime;
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private long id;
 
-        @Column(name = "phone", nullable = false)
-        private String email;
-
         @Column(name = "chat_id", nullable = false)
-        private long chatId;
+        private Long chatId;
 
-        @Column(name = "time", nullable = false)
-        private LocalDateTime time;
+        @Column(name = "name", nullable = false)
+        private String userName;
+
+        @Column(name = "phone", nullable = false)
+        private String userPhone;
+
+        public AppUser(Long chatId, String userName, String userPhone) {
+            this.chatId = chatId;
+            this.userName = userName;
+            this.userPhone = userPhone;
+        }
+
+        public AppUser() {
+
+        }
 
         public long getId() {
             return id;
@@ -26,28 +36,28 @@ import java.time.LocalDateTime;
             this.id = id;
         }
 
-        public String getEmail() {
-            return email;
+        public String getUserName() {
+            return userName;
         }
 
-        public void setEmail(String email) {
-            this.email = email;
+        public void setUserName(String userName) {
+            this.userName = userName;
         }
 
-        public long getChatId() {
+        public Long getChatId() {
             return chatId;
         }
 
-        public void setChatId(long chatId) {
+        public void setChatId(Long chatId) {
             this.chatId = chatId;
         }
 
-        public LocalDateTime getNotificationDateTime() {
-            return time;
+        public String getUserPhone() {
+            return userPhone;
         }
 
-        public void setNotificationDateTime(LocalDateTime notificationDateTime) {
-            this.time = notificationDateTime;
+        public void setUserPhone(String userPhone) {
+            this.userPhone = userPhone;
         }
     }
 

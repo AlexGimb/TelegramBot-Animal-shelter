@@ -1,4 +1,6 @@
 package com.example.telegrambotanimalshelter.listener;
+import com.example.telegrambotanimalshelter.entity.AppUser;
+import com.example.telegrambotanimalshelter.service.UserService;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.CallbackQuery;
@@ -14,12 +16,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Класс, реализующий функцию обращения к Telegram API и получения обновлений
  */
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
+    private final Pattern numberPattern = Pattern.compile("^((8|\\+7)[\\- ]?)?(\\(?\\d{3}\\)?[\\- ]?)?[\\d\\- ]{10}$");
     /**
      * Поле класса для логирования
      */
@@ -27,13 +31,17 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     /**
      * Внедрение зависимостей Телеграмм бот
      */
+    private final UserService userService;
     private final TelegramBot telegramBot;
 
     /**
      * Конструктор TelegramBotUpdatesListener
+     *
+     * @param userService
      * @param telegramBot
      */
-    public TelegramBotUpdatesListener(TelegramBot telegramBot) {
+    public TelegramBotUpdatesListener(UserService userService, TelegramBot telegramBot) {
+        this.userService = userService;
         this.telegramBot = telegramBot;
     }
 
@@ -53,9 +61,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     @Override
     public int process(List<Update> updates) {
         try {
-            updates.stream()
-                    .filter(update -> update.message() != null)
-                    .forEach(update -> {
+            updates.forEach(update -> {
                         if (update.callbackQuery() != null) {
                             logger.info("Processing update: {}", update);
                             CallbackQuery callbackQuery = update.callbackQuery();
@@ -87,7 +93,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                             if (text.equals("/start")) {
                                 sendStartMessage(chatId);
                             } else {
-                                sendDefaultMessage(chatId);
+                                saveUserInfo(chatId, text);
+//                            } else {
+//                                sendDefaultMessage(chatId);
                             }
                         }
                     });
@@ -181,6 +189,12 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     }
 
 
+    private void contactData(Long chatId) {
+        SendMessage sendMessage = new SendMessage(chatId, "Напишите ваше имя и номер телефона");
+        sendTelegramMessage(sendMessage);
+    }
+
+
     private void sendDefaultMessage(Long chatId) {
         SendMessage sendMessage = new SendMessage(chatId, "Вы указали неверную команду. " +
                 "Пожалуйста, начните с выбора приюта");
@@ -194,5 +208,46 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         if (!sendResponse.isOk()) {
             logger.error("Error during sending message: {}", sendResponse.description());
         }
+    }
+
+    private void saveUserInfo(Long chatId, String text) {
+        // Логика сохранения в БД
+        String[] parts = text.split(" ");
+        if (parts.length == 2) {
+            String userName = parts[0];
+            String userPhone = parts[1];
+            if (checkNumberForCorrect(userPhone)) {
+                AppUser appUser = new AppUser(chatId, userName, userPhone);
+                userService.saveUser(appUser);
+                saveUserInfoMessage(chatId);
+            } else {
+                sendWrongNumber(chatId);
+            }
+        } else {
+            sendWrongNumber(chatId);
+        }
+    }
+
+    private boolean checkNumberForCorrect(String number) {
+        // Проверка номера на корректность
+        return numberPattern.matcher(number).matches();
+    }
+
+
+    private void sendWrongNumber(Long chatId) {
+        // Сообщение при неверном указание контактных данных
+        SendMessage sendMessage = new SendMessage(chatId, """
+                Вы указали некорректный номер телефона или имя
+                Вначале укажите имя и через пробел номер телефона (+79... или 89..)
+                Пример:
+                Иван +7 900 000 00 00
+                """);
+        sendTelegramMessage(sendMessage);
+    }
+
+    private void saveUserInfoMessage(Long chatId) {
+        // Логика обработки кнопки InfoMessage
+        SendMessage sendMessage = new SendMessage(chatId, "Контактные данные сохранены");
+        sendTelegramMessage(sendMessage);
     }
 }
