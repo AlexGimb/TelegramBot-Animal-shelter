@@ -1,4 +1,5 @@
 package com.example.telegrambotanimalshelter.listener;
+
 import com.example.telegrambotanimalshelter.entity.AppUser;
 import com.example.telegrambotanimalshelter.repository.UserRepository;
 import com.pengrad.telegrambot.TelegramBot;
@@ -13,14 +14,17 @@ import com.pengrad.telegrambot.response.SendResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
 import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Класс, реализующий функцию обращения к Telegram API и получения обновлений
  */
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
+    private final Pattern numberPattern = Pattern.compile("^((8|\\+7)[\\- ]?)?(\\(?\\d{3}\\)?[\\- ]?)?[\\d\\- ]{10}$");
     /**
      * Поле класса для логирования
      */
@@ -33,9 +37,10 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
     /**
      * Конструктор TelegramBotUpdatesListener
+     *
      * @param telegramBot
      */
-    public TelegramBotUpdatesListener(TelegramBot telegramBot,UserRepository userRepository) {
+    public TelegramBotUpdatesListener(TelegramBot telegramBot, UserRepository userRepository) {
         this.telegramBot = telegramBot;
         this.userRepository = userRepository;
     }
@@ -50,6 +55,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
     /**
      * Метод, осуществляющий получение массива обновлений и реализующий логику согласно, полученных данных
+     *
      * @param updates
      * @return
      */
@@ -57,44 +63,44 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         try {
             updates.forEach(update -> {
-                        if (update.callbackQuery() != null) {
-                            logger.info("Processing update: {}", update);
-                            CallbackQuery callbackQuery = update.callbackQuery();
-                            String data = callbackQuery.data();
-                            Message message = callbackQuery.message();
-                            Long chatId = message.chat().id();
+                if (update.callbackQuery() != null) {
+                    logger.info("Processing update: {}", update);
+                    CallbackQuery callbackQuery = update.callbackQuery();
+                    String data = callbackQuery.data();
+                    Message message = callbackQuery.message();
+                    Long chatId = message.chat().id();
 
-                            // Обработка нажатия кнопок
-                            switch (data) {
-                                case "cats" -> sendCatsMenu(chatId);
-                                case "dogs" -> sendDogsMenu(chatId);
-                                case "info_cat" -> sendInfoShelterCat(chatId);
-                                case "info_dog" -> sendInfoShelterDog(chatId);
-                                case "take" -> sendTakeMessage(chatId);
-                                case "send" -> sendSendMessage(chatId);
-                                case "help" -> sendHelpMessage(chatId);
-                                case "contacts" -> contactData(chatId);
-                            }
+                    // Обработка нажатия кнопок
+                    switch (data) {
+                        case "cats" -> sendCatsMenu(chatId);
+                        case "dogs" -> sendDogsMenu(chatId);
+                        case "info_cat" -> sendInfoShelterCat(chatId);
+                        case "info_dog" -> sendInfoShelterDog(chatId);
+                        case "take" -> sendTakeMessage(chatId);
+                        case "send" -> sendSendMessage(chatId);
+                        case "help" -> sendHelpMessage(chatId);
+                        case "contacts" -> contactData(chatId);
+                    }
 
-                            // Отправка подтверждения о выполнении команды
-                            AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery(callbackQuery.id());
-                            telegramBot.execute(answerCallbackQuery);
-                        } else if (update.message() != null) {
+                    // Отправка подтверждения о выполнении команды
+                    AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery(callbackQuery.id());
+                    telegramBot.execute(answerCallbackQuery);
+                } else if (update.message() != null) {
 
-                            // Обработка текстовых сообщений
-                            Message message = update.message();
-                            String text = message.text();
-                            Long chatId = message.chat().id();
+                    // Обработка текстовых сообщений
+                    Message message = update.message();
+                    String text = message.text();
+                    Long chatId = message.chat().id();
 
-                            if (text.equals("/start")) {
-                                sendStartMessage(chatId);
-                            } else {
-                                saveUserInfo(chatId, text);
+                    if (text.equals("/start")) {
+                        sendStartMessage(chatId);
+                    } else {
+                            saveUserInfo(chatId, text);
 //                            } else {
 //                                sendDefaultMessage(chatId);
-                            }
-                        }
-                    });
+                    }
+                }
+            });
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
@@ -196,10 +202,33 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         if (parts.length == 2) {
             String userName = parts[0];
             String userPhone = parts[1];
-            AppUser appUser = new AppUser(chatId, userName, userPhone);
-            userRepository.save(appUser);
-            saveUserInfoMessage(chatId);
+                if (checkNumberForCorrect(userPhone)) {
+                    AppUser appUser = new AppUser(chatId, userName, userPhone);
+                    userRepository.save(appUser);
+                    saveUserInfoMessage(chatId);
+                } else {
+                    sendWrongNumber(chatId);
+                }
+        } else {
+            sendWrongNumber(chatId);
         }
+    }
+
+    private boolean checkNumberForCorrect(String number) {
+        // Проверка номера на корректность
+        return numberPattern.matcher(number).matches();
+    }
+
+
+    private void sendWrongNumber(Long chatId) {
+        // Сообщение при неверном указание контактных данных
+        SendMessage sendMessage = new SendMessage(chatId, """
+                Вы указали некорректный номер телефона или имя
+                Вначале укажите имя и через пробел номер телефона (+79... или 89..)
+                Пример:
+                Иван +7 900 000 00 00
+                """);
+        sendTelegramMessage(sendMessage);
     }
 
     private void saveUserInfoMessage(Long chatId) {
