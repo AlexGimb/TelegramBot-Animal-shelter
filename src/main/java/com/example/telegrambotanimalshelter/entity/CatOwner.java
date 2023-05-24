@@ -11,7 +11,7 @@ import java.util.List;
 @Table(name = "cat_owner")
 public class CatOwner {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id_cat_owner")
     private Long idCatOwner;
     @Column(name = "chat_id",nullable = false)

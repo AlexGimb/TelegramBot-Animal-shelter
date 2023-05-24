@@ -13,5 +13,5 @@ public interface ReportCatRepository extends JpaRepository<ReportCat, Long>  {
 
         List<ReportCat> findAllByReportDate(LocalDateTime reportDate);
 
-        List<ReportCat> findReportsByReportDateAndCatId(LocalDate date, Long catId);
+        List<ReportCat> findReportsByReportDateAndCatId(LocalDateTime reportDate, Long catId);
 }

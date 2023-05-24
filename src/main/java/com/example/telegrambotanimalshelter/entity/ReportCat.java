@@ -24,11 +24,15 @@ public class ReportCat {
     /**Поле с датой и временем отправки отчёта*/
     private LocalDateTime reportDate;
     @Lob
-    @Column(name = "photo", columnDefinition="BYTEA")
+    @Column(name = "photo", columnDefinition="bytea")
     private byte[] photoAsArrayOfBytes;
 
     public ReportCat() {
     }
+
+
+
+
 
     public long getId() {
         return id;

@@ -5,7 +5,6 @@ import com.example.telegrambotanimalshelter.entity.Cat;
 import com.example.telegrambotanimalshelter.entity.CatOwner;
 import com.example.telegrambotanimalshelter.entity.enums.StatusPetOwner;
 import com.example.telegrambotanimalshelter.exception.ListOfOwnersIsEmptyException;
-import com.example.telegrambotanimalshelter.exception.NoOwnerWithSuchIdException;
 import com.example.telegrambotanimalshelter.exception.PetNoFreeException;
 import com.example.telegrambotanimalshelter.repository.CatOwnerRepository;
 import com.example.telegrambotanimalshelter.repository.CatRepository;
@@ -67,7 +66,7 @@ public class CatOwnerService {
      * @param status     статус человека в приюте по отношению к кошке.
      */
     public void changeStatusOwnerById(Long idCatOwner, StatusPetOwner status) {
-        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow(NoOwnerWithSuchIdException::new);
+        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow();
         catOwner.setStatusOwner(status);
         catOwnerRepository.save(catOwner);
         String message = "";
@@ -91,7 +90,7 @@ public class CatOwnerService {
      * @param id   номер животного в базе даннных приюта.
      */
     public void changeCatById(Long idCatOwner, Long id) {
-        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow(NoOwnerWithSuchIdException::new);
+        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow();
         Cat cat = catRepository.findById(id).orElseThrow(IllegalArgumentException::new);
         if (cat.getStatus().equals(FREE)) {
             cat.setStatus(BUSY);
@@ -110,7 +109,7 @@ public class CatOwnerService {
      * @param idCatOwner номер человека в базе данных приюта.
      */
     public void takeTheCatAwayById(Long idCatOwner) {
-        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow(NoOwnerWithSuchIdException::new);
+        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow();
         Cat cat = catOwner.getCat();
         cat.setStatus(FREE);
         cat.setCatOwner(null);
@@ -127,7 +126,7 @@ public class CatOwnerService {
      * @param idCatOwner номер человека в базе данных приюта.
      */
     public void deleteCatOwnerById(Long idCatOwner) {
-        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow(NoOwnerWithSuchIdException::new);
+        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow();
         if (catOwner.getCat() != null) {
             Cat cat = catOwner.getCat();
             cat.setStatus(FREE);
@@ -145,7 +144,7 @@ public class CatOwnerService {
      * @return возвращает DTO человека.
      */
     public CatOwnerDTO getCatOwner(Long idCatOwner) {
-        return catOwnerToDTO(catOwnerRepository.findById(idCatOwner).orElseThrow(NoOwnerWithSuchIdException::new));
+        return catOwnerToDTO(catOwnerRepository.findById(idCatOwner).orElseThrow());
     }
 
     /**
@@ -156,7 +155,7 @@ public class CatOwnerService {
      * @param plusDays   на сколько дней увеличивается старая дата завершения испытательного периода.
      */
     public void updateFinish(Long idCatOwner, int plusDays) {
-        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow(NoOwnerWithSuchIdException::new);
+        CatOwner catOwner = catOwnerRepository.findById(idCatOwner).orElseThrow();
         catOwner.setFinish(catOwner.getFinish().plusDays(plusDays));
         catOwnerRepository.save(catOwner);
         telegramBot.execute(new SendMessage(catOwner.getChatId(), "Вам продлен испытательный срок до "

@@ -1,5 +1,7 @@
 package com.example.telegrambotanimalshelter.listener;
 import com.example.telegrambotanimalshelter.entity.AppUser;
+import com.example.telegrambotanimalshelter.entity.ReportCat;
+import com.example.telegrambotanimalshelter.service.ReportCatService;
 import com.example.telegrambotanimalshelter.service.UserService;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
@@ -15,7 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -34,15 +38,21 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     private final UserService userService;
     private final TelegramBot telegramBot;
 
+    private final ReportCatService reportCatService;
+
+    public Map<Long, Boolean> waitingForReport = new HashMap<>();
+
     /**
      * Конструктор TelegramBotUpdatesListener
      *
      * @param userService
      * @param telegramBot
+     * @param reportCatService
      */
-    public TelegramBotUpdatesListener(UserService userService, TelegramBot telegramBot) {
+    public TelegramBotUpdatesListener(UserService userService, TelegramBot telegramBot, ReportCatService reportCatService) {
         this.userService = userService;
         this.telegramBot = telegramBot;
+        this.reportCatService = reportCatService;
     }
 
     /**
@@ -62,47 +72,59 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         try {
             updates.forEach(update -> {
-                        if (update.callbackQuery() != null) {
-                            logger.info("Processing update: {}", update);
-                            CallbackQuery callbackQuery = update.callbackQuery();
-                            String data = callbackQuery.data();
-                            Message message = callbackQuery.message();
-                            Long chatId = message.chat().id();
+                logger.info("Processing update: {}", update);
+                if (update.callbackQuery() != null) {
+                    callBackQueryHandler(update);}
+                if (update.message() != null && update.callbackQuery() == null) {
+                    Message message = update.message();
+                    String text = message.text();
+                    long chatId = message.chat().id();
 
-                            // Обработка нажатия кнопок
-                            switch (data) {
-                                case "cats" -> sendCatsMenu(chatId);
-                                case "dogs" -> sendDogsMenu(chatId);
-                                case "info_cat" -> sendInfoShelterCat(chatId);
-                                case "info_dog" -> sendInfoShelterDog(chatId);
-                                case "take" -> sendTakeMessage(chatId);
-                                case "send" -> sendSendMessage(chatId);
-                                case "help" -> sendHelpMessage(chatId);
-                            }
+                    // Обработка нажатия кнопок
 
-                            // Отправка подтверждения о выполнении команды
-                            AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery(callbackQuery.id());
-                            telegramBot.execute(answerCallbackQuery);
-                        } else if (update.message() != null) {
-
-                            // Обработка текстовых сообщений
-                            Message message = update.message();
-                            String text = message.text();
-                            Long chatId = message.chat().id();
-
-                            if (text.equals("/start")) {
-                                sendStartMessage(chatId);
-                            } else {
-                                saveUserInfo(chatId, text);
-//                            } else {
-//                                sendDefaultMessage(chatId);
-                            }
+                    if (text.equals("/start")) {
+                        sendStartMessage(chatId);
+                    } else if (waitingForReport.get(chatId) == null) {
+                        telegramBot.execute(new SendMessage(chatId, "Нажмите кнопку отправить отчет")
+                                .replyMarkup(new InlineKeyboardMarkup(new InlineKeyboardButton("Отправить отчет")
+                                        .callbackData("SendReport"))));
+                    } else if (message.text() != null && (message.photo() == null && message.document() == null) && waitingForReport.get(chatId)) {
+                        telegramBot.execute(new SendMessage(chatId, "Вы не приложили фото к отчету"));
+                    } else if (message.caption() == null && (message.photo() != null || message.document().mimeType().equals("image/jpeg")) && waitingForReport.get(chatId)) {
+                        telegramBot.execute(new SendMessage(chatId, "Вы не приложили отчет"));
+                    } else if (message.caption() != null && (message.photo() != null || message.document().mimeType().equals("image/jpeg")) && waitingForReport.get(chatId)) {
+                        byte[] photoAsByteArray = reportCatService.processAttachment(message);
+                        if (photoAsByteArray == null) {
+                            throw new RuntimeException("no photo from tg downloaded");
                         }
+                        reportCatService.addReport(chatId, update.message().caption(), photoAsByteArray);
+                        telegramBot.execute(new SendMessage(chatId, "добавляем отчёт"));
+                        waitingForReport.remove(chatId);
+                    }
+                }
                     });
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
+    }
+
+    public void callBackQueryHandler(Update update) {
+        Long chatId = update.callbackQuery().message().chat().id();
+        CallbackQuery callbackQuery = update.callbackQuery();
+        String data = callbackQuery.data();
+        switch (data) {
+            case "cats" -> sendCatsMenu(chatId);
+            case "dogs" -> sendDogsMenu(chatId);
+            case "info_cat" -> sendInfoShelterCat(chatId);
+            case "info_dog" -> sendInfoShelterDog(chatId);
+            case "take" -> sendTakeMessage(chatId);
+            case "send" -> {
+                initiateReportDialog(chatId);
+                waitingForReport.put(chatId, true);}
+            case "help" -> sendHelpMessage(chatId);
+        }
+
     }
 
     private void sendStartMessage(Long chatId) {
@@ -175,10 +197,29 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         sendTelegramMessage(sendMessage);
     }
 
-    private void sendSendMessage(Long chatId) {
+    private void sendSendMessage(Long chatId, Message message) {
         // Логика обработки кнопки /send
-        SendMessage sendMessage = new SendMessage(chatId, "Прислать отчет о питомце");
-        sendTelegramMessage(sendMessage);
+        initiateReportDialog(chatId);
+        waitingForReport.put(chatId, true);
+    if (waitingForReport.get(chatId) == null) {
+        telegramBot.execute(new SendMessage(chatId, "Нажмите кнопку отправить отчет")
+                .replyMarkup(new InlineKeyboardMarkup(new InlineKeyboardButton("Отправить отчет")
+                        .callbackData("SendReport"))));
+    } else if (message.text() != null && (message.photo() == null && message.document() == null) && waitingForReport.get(chatId)) {
+        telegramBot.execute(new SendMessage(chatId, "Вы не приложили фото к отчету"));
+    } else if (message.caption() == null && (message.photo() != null || message.document().mimeType().equals("image/jpeg")) && waitingForReport.get(chatId)) {
+        telegramBot.execute(new SendMessage(chatId, "Вы не приложили отчет"));
+    } else if (message.caption() != null && (message.photo() != null || message.document().mimeType().equals("image/jpeg")) && waitingForReport.get(chatId)) {
+        byte[] photoAsByteArray = reportCatService.processAttachment(message);
+        if (photoAsByteArray == null) {
+            throw new RuntimeException("no photo from tg downloaded");
+        }
+        reportCatService.addReport(chatId, message.caption(), photoAsByteArray);
+        telegramBot.execute(new SendMessage(chatId, "добавляем отчёт"));
+        waitingForReport.remove(chatId);
+    } else {
+        sendDefaultMessage(chatId);
+    }
     }
 
     private void sendHelpMessage(Long chatId) {
@@ -249,5 +290,16 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         // Логика обработки кнопки InfoMessage
         SendMessage sendMessage = new SendMessage(chatId, "Контактные данные сохранены");
         sendTelegramMessage(sendMessage);
+    }
+
+    private void initiateReportDialog(long chatId) {
+        SendMessage sendMessage = new SendMessage(chatId, """
+                Пожалуйста, заполните отчёт по следующим пунктам:
+                1) Рацион животного.
+                2) Общее самочувствие и привыкание к новому месту.
+                3) Изменение в поведении: отказ от старых привычек, приобретение новых.
+                Также, не забудьте прикрепить к сообщению фото животного.
+                """);
+        telegramBot.execute(sendMessage);
     }
 }
