@@ -10,7 +10,6 @@
 - Сафуанов Артем - ArtNeonatolog
 - Даминов Линар - LinarDaminov
 - Гимберг Александр - AlexGimb
-- Головина Светлана - svetik24082
 - Шакиров Амир - smakakor
 
 
