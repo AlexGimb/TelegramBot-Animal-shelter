@@ -25,6 +25,7 @@ import javax.persistence.*;
             this.chatId = chatId;
             this.name = name;
             this.phone = phone;
+
         }
 
 
@@ -58,6 +59,10 @@ import javax.persistence.*;
 
         public void setEmail(String email) {
             this.phone = email;
+        }
+
+        public void setPhone(String phone) {
+            this.phone = phone;
         }
     }
 
