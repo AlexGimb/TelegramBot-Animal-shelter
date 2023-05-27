@@ -1,15 +1,14 @@
 package com.example.telegrambotanimalshelter.listener;
+
 import com.example.telegrambotanimalshelter.entity.AppUser;
-import com.example.telegrambotanimalshelter.entity.ReportCat;
-import com.example.telegrambotanimalshelter.service.ReportCatService;
-import com.example.telegrambotanimalshelter.service.UserService;
+import com.example.telegrambotanimalshelter.entity.UserState;
+import com.example.telegrambotanimalshelter.repository.UserRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.CallbackQuery;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
-import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
-import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
+import com.pengrad.telegrambot.model.request.*;
 import com.pengrad.telegrambot.request.AnswerCallbackQuery;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
@@ -21,6 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
+import static com.example.telegrambotanimalshelter.entity.UserState.WAITING_CONTACTS;
 
 /**
  * Класс, реализующий функцию обращения к Telegram API и получения обновлений
@@ -35,26 +36,18 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     /**
      * Внедрение зависимостей Телеграмм бот
      */
-    private final UserService userService;
     private final TelegramBot telegramBot;
+    private final UserRepository userRepository;
 
-    private final ReportCatService reportCatService;
-
-    public Map<Long, Boolean> waitingForReport = new HashMap<>();
-
+    private final Map<Long, UserState> userStates = new HashMap<>();
     /**
      * Конструктор TelegramBotUpdatesListener
      *
-     * @param userService
-     * @param telegramBot
-     * @param reportCatService
      */
-    public TelegramBotUpdatesListener(UserService userService, TelegramBot telegramBot, ReportCatService reportCatService) {
-        this.userService = userService;
+    public TelegramBotUpdatesListener(TelegramBot telegramBot, UserRepository userRepository) {
         this.telegramBot = telegramBot;
-        this.reportCatService = reportCatService;
+        this.userRepository = userRepository;
     }
-
     /**
      * Метод инициализации обновлений телеграмм бота
      */
@@ -62,98 +55,120 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public void init() {
         telegramBot.setUpdatesListener(this);
     }
-
     /**
      * Метод, осуществляющий получение массива обновлений и реализующий логику согласно, полученных данных
-     * @param updates
-     * @return
+     *
      */
     @Override
     public int process(List<Update> updates) {
         try {
             updates.forEach(update -> {
-                logger.info("Processing update: {}", update);
                 if (update.callbackQuery() != null) {
-                    callBackQueryHandler(update);}
-                if (update.message() != null && update.callbackQuery() == null) {
-                    Message message = update.message();
-                    String text = message.text();
-                    long chatId = message.chat().id();
+                    logger.info("Processing update: {}", update);
+                    CallbackQuery callbackQuery = update.callbackQuery();
+                    String data = callbackQuery.data();
+                    Message message = callbackQuery.message();
+                    Long chatId = message.chat().id();
 
                     // Обработка нажатия кнопок
+                    if ("cats".equals(data)) {
+                        sendCatsMenu(chatId);
+                    } else if ("dogs".equals(data)) {
+                        sendDogsMenu(chatId);
+                    } else if ("info_cat".equals(data)) {
+                        sendInfoShelterCat(chatId);
+                    } else if ("info_dog".equals(data)) {
+                        sendInfoShelterDog(chatId);
+                    } else if ("take".equals(data)) {
+                        sendTakeMessage(chatId);
+                    } else if ("send".equals(data)) {
+                        sendSendMessage(chatId);
+                    } else if ("help".equals(data)) {
+                        sendHelpMessage(chatId);
+                    } else if ("contacts".equals(data)) {
+                        contactData(chatId);
+                    }
+                    // Отправка подтверждения о выполнении команды
+                    AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery(callbackQuery.id());
+                    telegramBot.execute(answerCallbackQuery);
+
+                } else if (update.message() != null) {
+                    // Обработка текстовых сообщений
+                    Message message = update.message();
+                    String text = message.text();
+                    Long chatId = message.chat().id();
+
+                    UserState currentState = userStates.getOrDefault(chatId, UserState.DEFAULT);
 
                     if (text.equals("/start")) {
                         sendStartMessage(chatId);
-                    } else if (waitingForReport.get(chatId) == null) {
-                        telegramBot.execute(new SendMessage(chatId, "Нажмите кнопку отправить отчет")
-                                .replyMarkup(new InlineKeyboardMarkup(new InlineKeyboardButton("Отправить отчет")
-                                        .callbackData("SendReport"))));
-                    } else if (message.text() != null && (message.photo() == null && message.document() == null) && waitingForReport.get(chatId)) {
-                        telegramBot.execute(new SendMessage(chatId, "Вы не приложили фото к отчету"));
-                    } else if (message.caption() == null && (message.photo() != null || message.document().mimeType().equals("image/jpeg")) && waitingForReport.get(chatId)) {
-                        telegramBot.execute(new SendMessage(chatId, "Вы не приложили отчет"));
-                    } else if (message.caption() != null && (message.photo() != null || message.document().mimeType().equals("image/jpeg")) && waitingForReport.get(chatId)) {
-                        byte[] photoAsByteArray = reportCatService.processAttachment(message);
-                        if (photoAsByteArray == null) {
-                            throw new RuntimeException("no photo from tg downloaded");
-                        }
-                        reportCatService.addReport(chatId, update.message().caption(), photoAsByteArray);
-                        telegramBot.execute(new SendMessage(chatId, "добавляем отчёт"));
-                        waitingForReport.remove(chatId);
+                        createChoiceOfShelterMenu();
+                    } else if (text.equals("Выбрать приют")) {
+                        sendStartMenu(chatId);
+                    } else if (currentState.equals(WAITING_CONTACTS)) {
+                        saveUserInfo(chatId, text);
+                    } else {
+                        sendDefaultMessage(chatId);
                     }
                 }
-                    });
+            });
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
 
-    public void callBackQueryHandler(Update update) {
-        Long chatId = update.callbackQuery().message().chat().id();
-        CallbackQuery callbackQuery = update.callbackQuery();
-        String data = callbackQuery.data();
-        switch (data) {
-            case "cats" -> sendCatsMenu(chatId);
-            case "dogs" -> sendDogsMenu(chatId);
-            case "info_cat" -> sendInfoShelterCat(chatId);
-            case "info_dog" -> sendInfoShelterDog(chatId);
-            case "take" -> sendTakeMessage(chatId);
-            case "send" -> {
-                initiateReportDialog(chatId);
-                waitingForReport.put(chatId, true);}
-            case "help" -> sendHelpMessage(chatId);
-        }
-
+    private ReplyKeyboardMarkup createChoiceOfShelterMenu() {
+        KeyboardButton choiceOfShelter = new KeyboardButton("Выбрать приют");
+        return new ReplyKeyboardMarkup(choiceOfShelter)
+                .resizeKeyboard(true)
+                .oneTimeKeyboard(true);
     }
 
+
     private void sendStartMessage(Long chatId) {
-        InlineKeyboardMarkup inlinekeyboardMarkup = new InlineKeyboardMarkup(
-                new InlineKeyboardButton("Кошки").callbackData("cats"),
-                new InlineKeyboardButton("Собаки").callbackData("dogs"));
         SendMessage sendMessage = new SendMessage(chatId, "Привет! Я бот-помощник для поиска приюта для животных. " +
-                "Я могу помочь тебе выбрать приют для кошек или для собак. Выбери, пожалуйста, один из приютов:");
-        sendMessage.replyMarkup(inlinekeyboardMarkup);
+                "Я могу помочь тебе выбрать приют для кошек или для собак");
+        sendMessage.replyMarkup(createChoiceOfShelterMenu());
         sendTelegramMessage(sendMessage);
     }
 
-    private void sendCatsMenu(Long chatId) {
+    private void sendStartMenu(Long chatId) {
         InlineKeyboardMarkup inlinekeyboardMarkup = new InlineKeyboardMarkup(
-                new InlineKeyboardButton("Узнать информацию о приюте").callbackData("info_cat"),
-                new InlineKeyboardButton("Как взять животное из приюта").callbackData("take"),
-                new InlineKeyboardButton("Прислать отчет о питомце").callbackData("send"),
-                new InlineKeyboardButton("Позвать волонтера").callbackData("help"));
+                new InlineKeyboardButton("Кошки").callbackData("cats"),
+                new InlineKeyboardButton("Собаки").callbackData("dogs"));
+        inlinekeyboardMarkup.addRow(new InlineKeyboardButton("Оставить контакты").callbackData("contacts"));
+        SendMessage sendMessage = new SendMessage(chatId, "Выбери, пожалуйста, один из приютов:");
+        sendMessage.replyMarkup(inlinekeyboardMarkup);
+        sendTelegramMessage(sendMessage);
+        userStates.put(chatId, UserState.DEFAULT);
+    }
+
+    private void sendCatsMenu(Long chatId) {
+        InlineKeyboardMarkup inlinekeyboardMarkup = new InlineKeyboardMarkup();
+        InlineKeyboardButton infoCat = new InlineKeyboardButton("Узнать информацию о приюте").callbackData("info_cat");
+        InlineKeyboardButton take = new InlineKeyboardButton("Как взять животное из приюта").callbackData("take");
+        InlineKeyboardButton send = new InlineKeyboardButton("Прислать отчет о питомце").callbackData("send");
+        InlineKeyboardButton help = new InlineKeyboardButton("Позвать волонтера").callbackData("help");
+        inlinekeyboardMarkup.addRow(infoCat);
+        inlinekeyboardMarkup.addRow(take);
+        inlinekeyboardMarkup.addRow(send);
+        inlinekeyboardMarkup.addRow(help);
         SendMessage sendMessage = new SendMessage(chatId, "Выбери, пожалуйста, один из вариантов:");
         sendMessage.replyMarkup(inlinekeyboardMarkup);
         sendTelegramMessage(sendMessage);
     }
 
     private void sendDogsMenu(Long chatId) {
-        InlineKeyboardMarkup inlinekeyboardMarkup = new InlineKeyboardMarkup(
-                new InlineKeyboardButton("Узнать информацию о приюте").callbackData("info_dog"),
-                new InlineKeyboardButton("Как взять животное из приюта").callbackData("take"),
-                new InlineKeyboardButton("Прислать отчет о питомце").callbackData("send"),
-                new InlineKeyboardButton("Позвать волонтера").callbackData("help"));
+        InlineKeyboardMarkup inlinekeyboardMarkup = new InlineKeyboardMarkup();
+        InlineKeyboardButton infoDog = new InlineKeyboardButton("Узнать информацию о приюте").callbackData("info_dog");
+        InlineKeyboardButton take = new InlineKeyboardButton("Как взять животное из приюта").callbackData("take");
+        InlineKeyboardButton send = new InlineKeyboardButton("Прислать отчет о питомце").callbackData("send");
+        InlineKeyboardButton help = new InlineKeyboardButton("Позвать волонтера").callbackData("help");
+        inlinekeyboardMarkup.addRow(infoDog);
+        inlinekeyboardMarkup.addRow(take);
+        inlinekeyboardMarkup.addRow(send);
+        inlinekeyboardMarkup.addRow(help);
         SendMessage sendMessage = new SendMessage(chatId, "Выбери, пожалуйста, один из вариантов:");
         sendMessage.replyMarkup(inlinekeyboardMarkup);
         sendTelegramMessage(sendMessage);
@@ -187,13 +202,14 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
     private void sendTakeMessage(Long chatId) {
         // Логика обработки кнопки /take
-        SendMessage sendMessage = new SendMessage(chatId, "Итак, если вы хотите завести питомца и уверены, что хотите забрать его из приюта, то вот несколько простых шагов:\n" +
-                "1. Удостоверьтесь, что у вас и у членов вашей семьи нет аллергии на животных.\n" +
-                "2. Для того, что бы не тратить время на поиск животного в приюте, вы можете перед визитом ознакомится с некоторыми из них на нашем сайте или на волонтерских страничках в социальных сетях - Волонтерские странички приюта Дворняга - vkontakte\n" +
-                "3. После этого можно приехать в приют и познакомиться с понравившимся животным. C собачкой лучшей выйти на прогулку на специально отведенной территории и познакомится там ближе с характером животного.\n" +
-                "4. После того, как вы поймете, что именно эту  собачку вы хотите забрать из приюта, необходимо пообщаться с работником приюта или с курирующим волонтером, чтобы узнать про особенности поведения, содержания и питания животного, а также рассказать в каких условиях в дальнейшем будет жить питомец.\n" +
-                "5. Следующий этап - это оформление договора в нем фиксируются данные обеих сторон, оговариваются пункты ответственного содержания животного.\n" +
-                "6. На следующий день после подписания договора, вы можете приехать и забрать питомца домой. Для собачки следует привезти поводок с ошейником.");
+        SendMessage sendMessage = new SendMessage(chatId, """
+                Итак, если вы хотите завести питомца и уверены, что хотите забрать его из приюта, то вот несколько простых шагов:
+                1. Удостоверьтесь, что у вас и у членов вашей семьи нет аллергии на животных.
+                2. Для того, что бы не тратить время на поиск животного в приюте, вы можете перед визитом ознакомится с некоторыми из них на нашем сайте или на волонтерских страничках в социальных сетях - Волонтерские странички приюта Дворняга - vkontakte
+                3. После этого можно приехать в приют и познакомиться с понравившимся животным. C собачкой лучшей выйти на прогулку на специально отведенной территории и познакомится там ближе с характером животного.
+                4. После того, как вы поймете, что именно эту  собачку вы хотите забрать из приюта, необходимо пообщаться с работником приюта или с курирующим волонтером, чтобы узнать про особенности поведения, содержания и питания животного, а также рассказать в каких условиях в дальнейшем будет жить питомец.
+                5. Следующий этап - это оформление договора в нем фиксируются данные обеих сторон, оговариваются пункты ответственного содержания животного.
+                6. На следующий день после подписания договора, вы можете приехать и забрать питомца домой. Для собачки следует привезти поводок с ошейником.""");
         sendTelegramMessage(sendMessage);
     }
 
@@ -235,14 +251,67 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         sendTelegramMessage(sendMessage);
     }
 
+    private void contactData(Long chatId) {
+        SendMessage sendMessage = new SendMessage(chatId, """
+                Напишите ваше имя и номер телефона
+                Вначале укажите имя и через пробел номер телефона (+79... или 89..)
+                Пример:
+                Иван +7 900 00 000 00""");
+        sendTelegramMessage(sendMessage);
+        userStates.put(chatId, WAITING_CONTACTS);
+    }
+
+    private void saveUserInfo(Long chatId, String text) {
+        // Логика сохранения в БД
+        // Обработка контактных данных
+        String[] parts = text.split(" ", 2);
+        if (!text.isEmpty() && parts.length == 2) {
+            String userName = parts[0];
+            String userPhone = parts[1];
+            if (checkNumberForCorrect(userPhone)) {
+                AppUser appUser = new AppUser(chatId, userName, userPhone);
+                userRepository.save(appUser);
+                saveUserInfoMessage(chatId);
+                userStates.remove(chatId);
+            } else {
+                sendWrongNumber(chatId);
+            }
+        } else {
+            sendWrongNumber(chatId);
+        }
+    }
+
+    private boolean checkNumberForCorrect(String number) {
+        // Проверка номера на корректность
+        return numberPattern.matcher(number).matches();
+    }
+
+
+    private void sendWrongNumber(Long chatId) {
+        // Сообщение при неверном указание контактных данных
+        SendMessage sendMessage = new SendMessage(chatId, """
+                Вы указали некорректный номер телефона или имя
+                Вначале укажите имя и через пробел номер телефона (+79... или 89..)
+                Пример:
+                Иван +79000000000
+                """);
+        sendTelegramMessage(sendMessage);
+    }
+
+    private void saveUserInfoMessage(Long chatId) {
+        // Логика обработки кнопки InfoMessage
+        SendMessage sendMessage = new SendMessage(chatId, "Контактные данные сохранены");
+        sendTelegramMessage(sendMessage);
+        sendStartMenu(chatId);
+    }
 
     private void sendDefaultMessage(Long chatId) {
+        // Сообщение по дефолту
         SendMessage sendMessage = new SendMessage(chatId, "Вы указали неверную команду. " +
                 "Пожалуйста, начните с выбора приюта");
         sendTelegramMessage(sendMessage);
-        sendStartMessage(chatId);
+        sendStartMenu(chatId);
     }
-
 
     private void sendTelegramMessage(SendMessage sendMessage) {
         SendResponse sendResponse = telegramBot.execute(sendMessage);
