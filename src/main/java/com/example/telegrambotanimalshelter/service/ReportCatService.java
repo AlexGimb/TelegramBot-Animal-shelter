@@ -79,7 +79,7 @@ public class ReportCatService {
         ReportCat report = new ReportCat();
         AppUser user = userRepository.findCatOwnerByChatId(chatId);
         CatOwner catOwner = catOwnerRepository.findCatOwnerByChatId(chatId);
-        if (catOwner == null) {
+        if (user == null) {
             throw new NoSuchEntityIdException("Нет человека с таким chatId");
         }
         report.setCatOwner(catOwner);

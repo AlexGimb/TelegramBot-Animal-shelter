@@ -4,6 +4,7 @@ import com.example.telegrambotanimalshelter.entity.AppUser;
 import com.example.telegrambotanimalshelter.entity.UserState;
 import com.example.telegrambotanimalshelter.repository.UserRepository;
 import com.example.telegrambotanimalshelter.service.ReportCatService;
+import com.example.telegrambotanimalshelter.service.UserReportService;
 import com.example.telegrambotanimalshelter.service.UserService;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
@@ -22,6 +23,8 @@ import javax.annotation.PostConstruct;
 import java.io.*;
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -46,19 +49,24 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     private final UserService userService;
 
     private final ReportCatService reportCatService;
+    private final UserReportService userReportService;
 
     public Map<Long, Boolean> waitingForReport = new HashMap<>();
     private final Map<Long, UserState> userStates = new HashMap<>();
+
+    private Map<Long, String> userReportMessages = new HashMap<>();
 
     /**
      * Конструктор TelegramBotUpdatesListener
      */
     public TelegramBotUpdatesListener(TelegramBot telegramBot, UserRepository userRepository,
-                                      UserService userService, ReportCatService reportCatService) {
+                                      UserService userService, ReportCatService reportCatService,
+                                      UserReportService userReportService) {
         this.telegramBot = telegramBot;
         this.userRepository = userRepository;
         this.userService = userService;
         this.reportCatService = reportCatService;
+        this.userReportService = userReportService;
     }
 
     /**
@@ -123,6 +131,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                     Long chatId = message.chat().id();
                     UserState currentState = userStates.getOrDefault(chatId, UserState.DEFAULT);
 
+
                     if (text != null) {
                         if (text.equals("/start")) {
                             sendStartMessage(chatId);
@@ -132,7 +141,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                         } else if (currentState.equals(WAITING_CONTACTS)) {
                             saveUserInfo(chatId, text);
                         } else if (currentState.equals(SEND_REPORT)) {
-                            initiateReportDialogComplete(chatId);
+                            initiateReportDialogComplete(chatId, text);
                         }  else {
                             sendDefaultMessage(chatId);
                         }
@@ -147,13 +156,18 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                         GetFileResponse getFileResponse = telegramBot.execute(getFile);
                         com.pengrad.telegrambot.model.File file = getFileResponse.file();
                         String filePath = file.filePath();
+                        String reportText = userReportMessages.get(chatId);
 
                         // Скачиваем фото
                         File photo = downloadFile(filePath);
 
                         // Делаем что-то с фото (например, отправляем его обратно)
                         if (currentState.equals(SEND_REPORT_FOTO)) {
-                            sendReportFoto(chatId, message);
+                            try {
+                                sendReportFoto(chatId, reportText, photo);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         } else {
                             SendPhoto sendPhoto = new SendPhoto(message.chat().id(), photo);
                             telegramBot.execute(sendPhoto);
@@ -165,6 +179,51 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             logger.error(e.getMessage());
         }
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
+    }
+
+    public byte[] convertFileToByteArray(File file) throws IOException {
+        FileInputStream fileInputStream = null;
+        byte[] bytesArray = null;
+
+        try {
+            bytesArray = new byte[(int) file.length()];
+            fileInputStream = new FileInputStream(file);
+            fileInputStream.read(bytesArray);
+        } finally {
+            if (fileInputStream != null) {
+                fileInputStream.close();
+            }
+        }
+
+        return bytesArray;
+    }
+
+
+    private void initiateReportDialogComplete(Long chatId, String reportText) {
+        SendMessage sendMessage = new SendMessage(chatId, "Данные отправлены"
+                +"\nТеперь приложите фото питомца");
+        sendTelegramMessage(sendMessage);
+        userStates.put(chatId, SEND_REPORT_FOTO);
+        userReportMessages.put(chatId, reportText);
+    }
+
+    private void sendReportFoto(Long chatId, String text, File photo ) throws IOException {
+        // Логика обработки кнопки /send
+        waitingForReport.put(chatId, true);
+        if (photo == null) {
+            telegramBot.execute(new SendMessage(chatId, "Вы не приложили фото к отчету"));
+        } else {
+            byte[] photoBytes = convertFileToByteArray(photo);
+            userReportService.addReport(chatId, text, photoBytes);
+            telegramBot.execute(new SendMessage(chatId, "Отчёт добавлен"));
+            waitingForReport.remove(chatId);
+            userStates.remove(chatId);
+        }
+    }
+
+    public static byte[] readPhotoBytes(String filePath) throws IOException {
+        Path path = Path.of(filePath);
+        return Files.readAllBytes(path);
     }
 
     private static File downloadFile(String filePath) {
@@ -296,33 +355,6 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         userStates.put(chatId, SEND_REPORT);
     }
 
-    private void initiateReportDialogComplete(Long chatId) {
-        SendMessage sendMessage = new SendMessage(chatId, "Данные отправлены"
-                +"\nТеперь приложите фото питомца");
-        sendTelegramMessage(sendMessage);
-        userStates.put(chatId, SEND_REPORT_FOTO);
-    }
-
-    private void sendReportFoto(Long chatId, Message message) {
-        // Логика обработки кнопки /send
-        waitingForReport.put(chatId, true);
-        if (message.photo() == null) {
-            telegramBot.execute(new SendMessage(chatId, "Вы не приложили фото к отчету"));
-        } else if (message.photo() != null) {
-            byte[] photoAsByteArray = reportCatService.processAttachment(message);
-            if (photoAsByteArray == null) {
-                throw new RuntimeException("no photo from tg downloaded");
-            } else {
-                reportCatService.addReport(chatId, message.caption(), photoAsByteArray);
-                telegramBot.execute(new SendMessage(chatId, "добавляем отчёт"));
-                waitingForReport.remove(chatId);
-                userStates.remove(chatId);
-            }
-        } else {
-            SendMessage sendMessage = new SendMessage(chatId, "Что то пошло не так!");
-            sendTelegramMessage(sendMessage);
-        }
-    }
 
     private void sendHelpMessage(Long chatId) {
         // Логика обработки кнопки /help

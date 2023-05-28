@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private long id;
 
+
         @Column(name = "chat_id", nullable = false)
         private Long chatId;
 
