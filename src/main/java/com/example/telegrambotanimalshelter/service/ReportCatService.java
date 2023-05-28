@@ -1,6 +1,7 @@
 package com.example.telegrambotanimalshelter.service;
 import com.example.telegrambotanimalshelter.StringValidation;
 import com.example.telegrambotanimalshelter.dto.cat.ReportCatDTO;
+import com.example.telegrambotanimalshelter.entity.AppUser;
 import com.example.telegrambotanimalshelter.entity.CatOwner;
 import com.example.telegrambotanimalshelter.entity.ReportCat;
 import com.example.telegrambotanimalshelter.exception.NoSuchEntityIdException;
@@ -9,6 +10,7 @@ import com.example.telegrambotanimalshelter.exception.ReportListIsEmptyException
 import com.example.telegrambotanimalshelter.repository.CatOwnerRepository;
 import com.example.telegrambotanimalshelter.repository.CatRepository;
 import com.example.telegrambotanimalshelter.repository.ReportCatRepository;
+import com.example.telegrambotanimalshelter.repository.UserRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.PhotoSize;
@@ -32,7 +34,10 @@ public class ReportCatService {
     private ReportCatRepository reportCatRepository;
     private CatOwnerRepository catOwnerRepository;
     private CatRepository catRepository;
+
+    private final UserRepository userRepository;
     private final TelegramBot telegramBot;
+
 
     @Value("${telegram.bot.token}")
     private String token;
@@ -42,10 +47,15 @@ public class ReportCatService {
     @Value("${service.file_storage.uri}")
     private String fileStorageUri;
 
-    public ReportCatService(ReportCatRepository reportCatRepository, CatOwnerRepository catOwnerRepository, CatRepository catRepository, TelegramBot telegramBot) {
+    public ReportCatService(ReportCatRepository reportCatRepository,
+                            CatOwnerRepository catOwnerRepository,
+                            CatRepository catRepository,
+                            UserRepository userRepository,
+                            TelegramBot telegramBot) {
         this.reportCatRepository = reportCatRepository;
         this.catOwnerRepository = catOwnerRepository;
         this.catRepository = catRepository;
+        this.userRepository = userRepository;
         this.telegramBot = telegramBot;
     }
 
@@ -67,6 +77,7 @@ public class ReportCatService {
      */
     public void addReport(Long chatId, String catChanges, byte[] photoAsBytesArray) {
         ReportCat report = new ReportCat();
+        AppUser user = userRepository.findCatOwnerByChatId(chatId);
         CatOwner catOwner = catOwnerRepository.findCatOwnerByChatId(chatId);
         if (catOwner == null) {
             throw new NoSuchEntityIdException("Нет человека с таким chatId");
@@ -261,4 +272,5 @@ public class ReportCatService {
             throw new RuntimeException("Bad response from TG service" + response);
         }
     }
+
 }
