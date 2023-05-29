@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_report")
-public class ReportUser {
+public class ReportOwner {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
@@ -15,8 +15,8 @@ public class ReportUser {
     @ManyToOne(cascade = CascadeType.REMOVE)
     @JoinColumn(name = "id_user", nullable = false)
     /**Поле владельца животного, который пишет отчёт*/
-    private AppUser user;
-    @Column(name = "changes", length = 2048, nullable = true)
+    private Owner owner;
+    @Column(name = "changes", length = 2048)
     /**Поле с описанием рациона и режима питания, адаптации и состояния, а также изменений в поведении кошки*/
     private String catChanges;
     @Column(name = "report_date")
@@ -27,7 +27,7 @@ public class ReportUser {
     @Type(type = "org.hibernate.type.BinaryType")
     private byte[] photoAsArrayOfBytes;
 
-    public ReportUser() {
+    public ReportOwner() {
     }
 
     public long getId() {
@@ -38,12 +38,12 @@ public class ReportUser {
         this.id = id;
     }
 
-    public AppUser getUser() {
-        return user;
+    public Owner getOwner() {
+        return owner;
     }
 
-    public void setUser(AppUser user) {
-        this.user = user;
+    public void setOwner(Owner owner) {
+        this.owner = owner;
     }
 
     public String getCatChanges() {

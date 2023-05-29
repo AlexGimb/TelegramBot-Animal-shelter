@@ -1,30 +1,30 @@
 package com.example.telegrambotanimalshelter.service;
 import com.example.telegrambotanimalshelter.StringValidation;
-import com.example.telegrambotanimalshelter.dto.cat.CatDTO;
+import com.example.telegrambotanimalshelter.dto.CatDTO;
 import com.example.telegrambotanimalshelter.entity.Cat;
-import com.example.telegrambotanimalshelter.entity.CatOwner;
+import com.example.telegrambotanimalshelter.entity.Owner;
 import com.example.telegrambotanimalshelter.entity.enums.GenderOfPet;
 import com.example.telegrambotanimalshelter.exception.NoPetException;
-import com.example.telegrambotanimalshelter.repository.CatOwnerRepository;
 import com.example.telegrambotanimalshelter.repository.CatRepository;
+import com.example.telegrambotanimalshelter.repository.OwnerRepository;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import static com.example.telegrambotanimalshelter.dto.cat.CatDTO.catToDTO;
+import static com.example.telegrambotanimalshelter.dto.CatDTO.catToDTO;
 import static com.example.telegrambotanimalshelter.entity.enums.GenderOfPet.FEMALE;
 import static com.example.telegrambotanimalshelter.entity.enums.StatusOfPet.*;
 
 @Service
 public class CatService {
     private final CatRepository catRepository;
-    private final CatOwnerRepository catOwnerRepository;
 
-    public CatService(CatRepository catRepository, CatOwnerRepository catOwnerRepository) {
+    private final OwnerRepository ownerRepository;
+
+    public CatService(CatRepository catRepository, OwnerRepository ownerRepository) {
         this.catRepository = catRepository;
-        this.catOwnerRepository = catOwnerRepository;
-
+        this.ownerRepository = ownerRepository;
     }
 
     /**
@@ -35,13 +35,15 @@ public class CatService {
      * @throws NoPetException при попытке добавить кошку без имени
      */
     public CatDTO addCat(CatDTO catDTO) {
-        if (!StringValidation.validation(catDTO.nickName()) || !StringValidation.validation(catDTO.species()) || !StringValidation.validation(catDTO.description())) {
+        if (!StringValidation.validation(catDTO.nickName()) || !StringValidation.validation(catDTO.species()) ||
+                !StringValidation.validation(catDTO.description())) {
             throw new NoPetException("Необходимо заполнить следующие поля: имя животного, порода, описание, пол.");
         }
         if (catDTO.birthYear() <= 2000 || catDTO.birthYear() > LocalDate.now().getYear()) {
             throw new NoPetException("Год рождения животного не может быть меньше 2000 и больше текущего!");
         }
-        Cat cat = new Cat(catDTO.nickName(), catDTO.birthYear(), catDTO.gender(), catDTO.color(), catDTO.species(), catDTO.description(), FREE);
+        Cat cat = new Cat(catDTO.nickName(), catDTO.birthYear(), catDTO.gender(), catDTO.color(),
+                catDTO.species(), catDTO.description(), FREE);
         return catToDTO(catRepository.save(cat));
     }
 
@@ -88,11 +90,11 @@ public class CatService {
             cat.setDescription(catDTO.description());
         }
         cat.setColor(catDTO.color());
-        if(catDTO.catOwner()!=0){
-            cat.setCatOwner(catOwnerRepository.findById(catDTO.catOwner()).orElseThrow());
-            CatOwner catOwner = catOwnerRepository.findById(catDTO.catOwner()).orElseThrow();
-            catOwner.setCat(cat);
-            catOwnerRepository.save(catOwner);
+        if(catDTO.user()!=0){
+            cat.setOwner(ownerRepository.findById(catDTO.user()).orElseThrow());
+            Owner owner = ownerRepository.findById(catDTO.user()).orElseThrow();
+            owner.setCat(cat);
+            ownerRepository.save(owner);
         }
         if(catDTO.status()==FREE||catDTO.status()==BUSY||catDTO.status()==ADOPTIVE){
             cat.setStatus(catDTO.status());
@@ -111,12 +113,12 @@ public class CatService {
      */
     public void removeCat(long id) {
         Cat cat = catRepository.findById(id).orElseThrow();
-        CatOwner catOwner = cat.getCatOwner();
-        if(catOwner == null) {
+        Owner owner = cat.getOwner();
+        if(owner == null) {
             catRepository.deleteById(id);
         } else {
-            catOwner.setCat(null);
-            catOwnerRepository.save(catOwner);
+            owner.setCat(null);
+            ownerRepository.save(owner);
             catRepository.deleteById(id);
         }
     }

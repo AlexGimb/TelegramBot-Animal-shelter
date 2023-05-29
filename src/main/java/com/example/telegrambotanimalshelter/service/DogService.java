@@ -1,29 +1,30 @@
 package com.example.telegrambotanimalshelter.service;
 import com.example.telegrambotanimalshelter.StringValidation;
-import com.example.telegrambotanimalshelter.dto.dog.DogDTO;
+import com.example.telegrambotanimalshelter.dto.DogDTO;
 import com.example.telegrambotanimalshelter.entity.Dog;
-import com.example.telegrambotanimalshelter.entity.DogOwner;
+import com.example.telegrambotanimalshelter.entity.Owner;
 import com.example.telegrambotanimalshelter.entity.enums.GenderOfPet;
 import com.example.telegrambotanimalshelter.exception.NoPetException;
-import com.example.telegrambotanimalshelter.repository.DogOwnerRepository;
 import com.example.telegrambotanimalshelter.repository.DogRepository;
+import com.example.telegrambotanimalshelter.repository.OwnerRepository;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import static com.example.telegrambotanimalshelter.dto.dog.DogDTO.dogToDTO;
+import static com.example.telegrambotanimalshelter.dto.DogDTO.dogToDTO;
 import static com.example.telegrambotanimalshelter.entity.enums.GenderOfPet.FEMALE;
 import static com.example.telegrambotanimalshelter.entity.enums.StatusOfPet.*;
 
 @Service
 public class DogService {
     private final DogRepository dogRepository;
-    private final DogOwnerRepository dogOwnerRepository;
 
-    public DogService(DogRepository dogRepository, DogOwnerRepository dogOwnerRepository) {
+    private final OwnerRepository ownerRepository;
+
+    public DogService(DogRepository dogRepository, OwnerRepository ownerRepository) {
         this.dogRepository = dogRepository;
-        this.dogOwnerRepository = dogOwnerRepository;
+        this.ownerRepository = ownerRepository;
 
     }
 
@@ -88,11 +89,11 @@ public class DogService {
             dog.setDescription(dogDTO.description());
         }
         dog.setColor(dogDTO.color());
-        if(dogDTO.dogOwner()!=0){
-            dog.setDogOwner(dogOwnerRepository.findById(dogDTO.dogOwner()).orElseThrow());
-            DogOwner dogOwner = dogOwnerRepository.findById(dogDTO.dogOwner()).orElseThrow();
-            dogOwner.setDog(dog);
-            dogOwnerRepository.save(dogOwner);
+        if(dogDTO.user()!=0){
+            dog.setOwner(ownerRepository.findById(dogDTO.user()).orElseThrow());
+            Owner owner = ownerRepository.findById(dogDTO.user()).orElseThrow();
+            owner.setDog(dog);
+            ownerRepository.save(owner);
         }
         if(dogDTO.status()==FREE||dogDTO.status()==BUSY||dogDTO.status()==ADOPTIVE){
             dog.setStatus(dogDTO.status());
@@ -111,12 +112,12 @@ public class DogService {
      */
     public void removeDog(long id) {
         Dog dog = dogRepository.findById(id).orElseThrow();
-        DogOwner dogOwner = dog.getDogOwner();
-        if(dogOwner == null) {
+        Owner owner = dog.getOwner();
+        if(owner == null) {
             dogRepository.deleteById(id);
         } else {
-            dogOwner.setDog(null);
-            dogOwnerRepository.save(dogOwner);
+            owner.setDog(null);
+            ownerRepository.save(owner);
             dogRepository.deleteById(id);
         }
     }

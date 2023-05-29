@@ -1,7 +1,8 @@
 package com.example.telegrambotanimalshelter.controllers;
-import com.example.telegrambotanimalshelter.dto.CatDTO;
+
+import com.example.telegrambotanimalshelter.dto.DogDTO;
 import com.example.telegrambotanimalshelter.entity.Cat;
-import com.example.telegrambotanimalshelter.service.CatService;
+import com.example.telegrambotanimalshelter.service.DogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,18 +16,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collection;
 
 @RestController
-@RequestMapping("/cats")
-@Tag(name="Кошки", description = "CRUD-операции для работы с кошками")
-public class CatController {
-    private final CatService catService;
+@RequestMapping("/dogs")
+@Tag(name="Собаки", description = "CRUD-операции для работы с собаками")
+public class DogController {
+    private final DogService dogService;
 
 
-    public CatController(CatService catService) {
-        this.catService = catService;
+    public DogController(DogService dogService) {
+        this.dogService = dogService;
     }
     @GetMapping("{id}")
     @Operation(
-            summary = "Поиск кошки",
+            summary = "Поиск собаки",
             description = "Поиск осуществляется по id"
     )
     @ApiResponses(value = {
@@ -46,16 +47,16 @@ public class CatController {
             )
     }
     )
-    public ResponseEntity<CatDTO> getCat(@PathVariable long id) {
-        return ResponseEntity.ok().body(catService.getCat(id));
+    public ResponseEntity<DogDTO> getDog(@PathVariable long id) {
+        return ResponseEntity.ok().body(dogService.getDog(id));
     }
 
-    @PostMapping("/addCat")
-    @Operation(summary = "Добавление новой кошки")
+    @PostMapping("/addDog")
+    @Operation(summary = "Добавление новой собаки")
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Кошка добавлена",
+                    description = "Собака добавлена",
                     content = {
                             @Content(
                                     mediaType = "application/json"
@@ -69,13 +70,13 @@ public class CatController {
             )
     }
     )
-    public ResponseEntity<CatDTO> createCat(@RequestBody CatDTO catDTO) {
-        return ResponseEntity.ok().body(catService.addCat(catDTO));
+    public ResponseEntity<DogDTO> createDog(@RequestBody DogDTO dogDTO) {
+        return ResponseEntity.ok().body(dogService.addDog(dogDTO));
     }
 
     @DeleteMapping("{id}")
     @Operation(
-            summary = "Удаление кошки из базы данных",
+            summary = "Удаление собаки из базы данных",
             description = "Удаление осуществляется по id"
     )
     @ApiResponses(value = {
@@ -89,13 +90,13 @@ public class CatController {
             )
     }
     )
-    public void deleteCat(@PathVariable("id") long id) {
-        catService.removeCat(id);
+    public void deleteDog(@PathVariable("id") long id) {
+        dogService.removeDog(id);
         ResponseEntity.ok().build();
     }
     @PutMapping("{id}")
     @Operation(
-            summary = "Редактирование сведений о кошке",
+            summary = "Редактирование сведений о собаке",
             description = "Редактирование осуществляется по id"
     )
     @ApiResponses(value = {
@@ -115,15 +116,15 @@ public class CatController {
             )
     }
     )
-    public ResponseEntity<CatDTO> updateCat(@RequestBody CatDTO catDTO) {
-        return ResponseEntity.ok().body(catService.updateCat(catDTO));
+    public ResponseEntity<DogDTO> updateDog(@RequestBody DogDTO dogDTO) {
+        return ResponseEntity.ok().body(dogService.updateDog(dogDTO));
     }
-    @GetMapping("/getAllCats")
-    @Operation(summary = "Получение списка всех кошек, которые есть в приюте")
+    @GetMapping("/getAllDogs")
+    @Operation(summary = "Получение списка всех собак, которые есть в приюте")
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Список кошек получен",
+                    description = "Список собак получен",
                     content = {
                             @Content(
                                     mediaType = "application/json",
@@ -133,12 +134,12 @@ public class CatController {
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Кошки не найдены",
+                    description = "Собаки не найдены",
                     content = {}
             )
     }
     )
-    public ResponseEntity<Collection<CatDTO>> getAllCats() {
-        return ResponseEntity.ok().body(catService.getAllCats());
+    public ResponseEntity<Collection<DogDTO>> getAllDogs() {
+        return ResponseEntity.ok().body(dogService.getAllDogs());
     }
 }

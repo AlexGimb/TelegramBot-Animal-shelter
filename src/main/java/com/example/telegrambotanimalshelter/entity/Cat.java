@@ -37,14 +37,15 @@ public class Cat {
     private StatusOfPet status;
 
     @OneToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_cat_owner")
-    private CatOwner catOwner;
+    @JoinColumn(name = "id_user")
+    private Owner owner;
 
     public Cat() {
     }
 
-    public Cat(long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
-               StatusOfPet status, CatOwner catOwner) {
+    public Cat(long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color,
+               String species, String description,
+               StatusOfPet status, Owner owner) {
         this.id = id;
         this.nickName = nickName;
         this.birthYear = birthYear;
@@ -53,10 +54,11 @@ public class Cat {
         this.species = species;
         this.description = description;
         this.status = status;
-        this.catOwner = catOwner;
+        this.owner = owner;
     }
 
-    public Cat(long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
+    public Cat(long id, String nickName, int birthYear, GenderOfPet gender,
+               ColorOfPet color, String species, String description,
                StatusOfPet status) {
         this.id = id;
         this.nickName = nickName;
@@ -68,7 +70,8 @@ public class Cat {
         this.status = status;
     }
 
-    public Cat(String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
+    public Cat(String nickName, int birthYear, GenderOfPet gender, ColorOfPet color,
+               String species, String description,
                StatusOfPet status) {
         this.nickName = nickName;
         this.birthYear = birthYear;
@@ -143,11 +146,11 @@ public class Cat {
         this.status = status;
     }
 
-    public CatOwner getCatOwner() {
-        return catOwner;
+    public Owner getOwner() {
+        return owner;
     }
 
-    public void setCatOwner(CatOwner catOwner) {
-        this.catOwner = catOwner;
+    public void setOwner(Owner owner) {
+        this.owner = owner;
     }
 }

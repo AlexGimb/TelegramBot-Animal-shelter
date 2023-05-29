@@ -37,14 +37,15 @@ public class Dog {
     private StatusOfPet status;
 
     @OneToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "idDogOwner")
-    private DogOwner dogOwner;
+    @JoinColumn(name = "id_user")
+    private Owner owner;
 
     public Dog() {
     }
 
-    public Dog(long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
-               StatusOfPet status, DogOwner dogOwner) {
+    public Dog(long id, String nickName, int birthYear, GenderOfPet gender,
+                ColorOfPet color, String species, String description,
+                StatusOfPet status, Owner owner) {
         this.id = id;
         this.nickName = nickName;
         this.birthYear = birthYear;
@@ -53,10 +54,11 @@ public class Dog {
         this.species = species;
         this.description = description;
         this.status = status;
-        this.dogOwner = dogOwner;
+        this.owner = owner;
     }
-    public Dog(long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
-               StatusOfPet status) {
+    public Dog(long id, String nickName, int birthYear, GenderOfPet gender, ColorOfPet color,
+                String species, String description,
+                StatusOfPet status) {
         this.id = id;
         this.nickName = nickName;
         this.birthYear = birthYear;
@@ -67,8 +69,9 @@ public class Dog {
         this.status = status;
     }
 
-    public Dog(String nickName, int birthYear, GenderOfPet gender, ColorOfPet color, String species, String description,
-               StatusOfPet status) {
+    public Dog(String nickName, int birthYear, GenderOfPet gender, ColorOfPet color,
+                String species, String description,
+                StatusOfPet status) {
         this.nickName = nickName;
         this.birthYear = birthYear;
         this.gender = gender;
@@ -142,11 +145,11 @@ public class Dog {
         this.status = status;
     }
 
-    public DogOwner getDogOwner() {
-        return dogOwner;
+    public Owner getOwner() {
+        return owner;
     }
 
-    public void setDogOwner(DogOwner dogOwner) {
-        this.dogOwner = dogOwner;
+    public void setOwner(Owner owner) {
+        this.owner = owner;
     }
 }

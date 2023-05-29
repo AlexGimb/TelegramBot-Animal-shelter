@@ -1,7 +1,7 @@
 package com.example.telegrambotanimalshelter.controllers;
-import com.example.telegrambotanimalshelter.dto.cat.CatOwnerDTO;
+import com.example.telegrambotanimalshelter.dto.OwnerDTO;
 import com.example.telegrambotanimalshelter.entity.enums.StatusPetOwner;
-import com.example.telegrambotanimalshelter.service.CatOwnerService;
+import com.example.telegrambotanimalshelter.service.OwnerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,12 +14,12 @@ import java.util.List;
 /** Класс контроллера для редактирования информации о посетителях и персонале приюта кошек.
  */
 @RestController
-@RequestMapping(value = "/catOwner")
-@Tag(name="Посетители и волонтеры приюта кошек", description = "Редактирование данных людей в базе данных приюта животных")
-public class CatOwnerController {
-    private final CatOwnerService catOwnerService;
-    public CatOwnerController(CatOwnerService catOwnerService) {
-        this.catOwnerService = catOwnerService;
+@RequestMapping(value = "/owner")
+@Tag(name="Посетители и волонтеры приюта", description = "Редактирование данных людей в базе данных приюта животных")
+public class OwnerController {
+    private final OwnerService ownerService;
+    public OwnerController(OwnerService ownerService) {
+        this.ownerService = ownerService;
     }
 
     @PostMapping
@@ -33,9 +33,11 @@ public class CatOwnerController {
             @ApiResponse( responseCode = "500",
                     description = "Произошла ошибка, запрос не может быть обработан."  )
     } )
-    public ResponseEntity<CatOwnerDTO> addCatOwner(@RequestBody CatOwnerDTO catOwnerDTO) {
-        return ResponseEntity.ok().body(catOwnerService.createCatOwner(catOwnerDTO));
+    public ResponseEntity<OwnerDTO> addOwner(@RequestBody OwnerDTO ownerDTO) {
+        return ResponseEntity.ok().body(ownerService.createOwner(ownerDTO));
     }
+
+
     @GetMapping
     @Operation(summary = "Получение списка данных всех людей из базы данных приюта")
     @ApiResponses( {
@@ -47,10 +49,12 @@ public class CatOwnerController {
             @ApiResponse( responseCode = "500",
                     description = "Произошла ошибка, запрос не может быть обработан."  )
     } )
-    public ResponseEntity<List<CatOwnerDTO>> getAllCatOwners(){
-        return ResponseEntity.ok().body(catOwnerService.getAllCatsOwners());
+    public ResponseEntity<List<OwnerDTO>> getAllOwners(){
+        return ResponseEntity.ok().body(ownerService.getAllOwners());
     }
-    @DeleteMapping("{idCatOwner}")
+
+
+    @DeleteMapping("{idOwner}")
     @Operation(summary = "Удаление человека из БД по его id")
     @ApiResponses( {
             @ApiResponse( responseCode = "200",
@@ -61,8 +65,9 @@ public class CatOwnerController {
             @ApiResponse( responseCode = "500",
                     description = "Произошла ошибка, не зависящая от вызывающей стороны."  )
     } )
-    public void deleteCatOwnerById(@PathVariable ("idCatOwner") Long idCatOwner){
-        catOwnerService.deleteCatOwnerById(idCatOwner);
+    public void deleteOwnerById(@PathVariable ("idOwner") Long idOwner){
+        ownerService.deleteCatOwnerById(idOwner);
+
     }
     @PutMapping("/status")
     @Operation(summary = "Изменение статуса человека в БД по его id")
@@ -75,11 +80,13 @@ public class CatOwnerController {
             @ApiResponse( responseCode = "500",
                     description = "Произошла ошибка, не зависящая от вызывающей стороны."  )
     } )
-    public void changeStatusOwner(@RequestParam Long idCatOwner, @RequestParam StatusPetOwner statusOwner){
-        catOwnerService.changeStatusOwnerById(idCatOwner, statusOwner);
+    public void changeStatusOwner(@RequestParam Long idOwner, @RequestParam StatusPetOwner statusOwner){
+        ownerService.changeStatusOwnerById(idOwner, statusOwner);
+
     }
-    @PutMapping("/add")
-    @Operation(summary = "Добавление или замена животного из БД приюта в карте человека по id человека с проверкой и сменой статуса кота.")
+    @PutMapping("/addCat")
+    @Operation(summary = "Добавление или замена животного из БД приюта в карте человека по id " +
+            "человека с проверкой и сменой статуса кота.")
     @ApiResponses( {
             @ApiResponse( responseCode = "200",
                     description = "Животное добавлено (заменено) в карту клиента.",
@@ -89,10 +96,27 @@ public class CatOwnerController {
             @ApiResponse( responseCode = "500",
                     description = "Произошла ошибка, не зависящая от вызывающей стороны."  )
     } )
-    public void changePet(@RequestParam Long idCatOwner, @RequestParam Long id){
-        catOwnerService.changeCatById(idCatOwner, id);
+    public void changeСat(@RequestParam Long idOwner, @RequestParam Long id){
+        ownerService.changeCatById(idOwner, id);
     }
-    @PutMapping("/delete/{idCatOwner}")
+
+    @PutMapping("/addDog")
+    @Operation(summary = "Добавление или замена животного из БД приюта в карте человека по id " +
+            "человека с проверкой и сменой статуса собаки.")
+    @ApiResponses( {
+            @ApiResponse( responseCode = "200",
+                    description = "Животное добавлено (заменено) в карту клиента.",
+                    content = {  @Content(mediaType = "application/json") } ),
+            @ApiResponse( responseCode = "400",
+                    description = "Параметры запроса отсутствуют или имеют некорректный формат."  ),
+            @ApiResponse( responseCode = "500",
+                    description = "Произошла ошибка, не зависящая от вызывающей стороны."  )
+    } )
+    public void changeDog(@RequestParam Long idOwner, @RequestParam Long id){
+        ownerService.changeDogById(idOwner, id);
+    }
+
+    @PutMapping("/deleteCat/{idOwner}")
     @Operation(summary = "Удаление животного из карты человека (по id человека) по какой-либо причине со сменой статуса кота.")
     @ApiResponses( {
             @ApiResponse( responseCode = "200",
@@ -103,11 +127,27 @@ public class CatOwnerController {
             @ApiResponse( responseCode = "500",
                     description = "Произошла ошибка, не зависящая от вызывающей стороны."  )
     } )
-    public void takeThePetAway(@PathVariable ("idCatOwner") Long idCatOwner){
-        catOwnerService.takeTheCatAwayById(idCatOwner);
+    public void takeTheCatAway(@PathVariable ("idOwner") Long idOwner){
+        ownerService.takeTheCatAwayById(idOwner);
     }
 
-    @GetMapping("{idCatOwner}")
+    @PutMapping("/deleteDog/{idOwner}")
+    @Operation(summary = "Удаление животного из карты человека (по id человека) по какой-либо причине со " +
+            "сменой статуса собаки.")
+    @ApiResponses( {
+            @ApiResponse( responseCode = "200",
+                    description = "Животное стерто в карте клиента.",
+                    content = {  @Content(mediaType = "application/json") } ),
+            @ApiResponse( responseCode = "400",
+                    description = "Параметры запроса отсутствуют или имеют некорректный формат."  ),
+            @ApiResponse( responseCode = "500",
+                    description = "Произошла ошибка, не зависящая от вызывающей стороны."  )
+    } )
+    public void takeTheDogAway(@PathVariable ("idOwner") Long idOwner){
+        ownerService.takeTheDogAwayById(idOwner);
+    }
+
+    @GetMapping("{idOwner}")
     @Operation(summary = "Поиск человека по его id в приюте животных.")
     @ApiResponses( {
             @ApiResponse( responseCode = "200",
@@ -118,8 +158,8 @@ public class CatOwnerController {
             @ApiResponse( responseCode = "500",
                     description = "Произошла ошибка, не зависящая от вызывающей стороны."  )
     } )
-    public ResponseEntity<CatOwnerDTO> getCatOwner(@PathVariable ("idCatOwner") Long idCatOwner) {
-        return ResponseEntity.ok().body(catOwnerService.getCatOwner(idCatOwner));
+    public ResponseEntity<OwnerDTO> getOwner(@PathVariable ("idOwner") Long idOwner) {
+        return ResponseEntity.ok().body(ownerService.getOwner(idOwner));
     }
 
     @PutMapping("/probe")
@@ -133,8 +173,7 @@ public class CatOwnerController {
             @ApiResponse( responseCode = "500",
                     description = "Произошла ошибка, не зависящая от вызывающей стороны."  )
     } )
-    public void updateFinishProbe(@RequestParam Long idCatOwner, @RequestParam ("+N дней") int plusDays){
-        catOwnerService.updateFinish(idCatOwner, plusDays);
+    public void updateFinishProbe(@RequestParam Long idOwner, @RequestParam ("+N дней") int plusDays){
+        ownerService.updateFinish(idOwner, plusDays);
     }
-
 }

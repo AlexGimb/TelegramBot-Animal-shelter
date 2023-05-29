@@ -1,11 +1,10 @@
 package com.example.telegrambotanimalshelter.listener;
 
-import com.example.telegrambotanimalshelter.entity.AppUser;
+import com.example.telegrambotanimalshelter.entity.Owner;
 import com.example.telegrambotanimalshelter.entity.UserState;
-import com.example.telegrambotanimalshelter.repository.UserRepository;
-import com.example.telegrambotanimalshelter.service.ReportCatService;
+import com.example.telegrambotanimalshelter.repository.OwnerRepository;
+import com.example.telegrambotanimalshelter.service.OwnerService;
 import com.example.telegrambotanimalshelter.service.UserReportService;
-import com.example.telegrambotanimalshelter.service.UserService;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.*;
@@ -23,8 +22,6 @@ import javax.annotation.PostConstruct;
 import java.io.*;
 import java.io.File;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -44,12 +41,12 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
      * Внедрение зависимостей Телеграмм бот
      */
     private final TelegramBot telegramBot;
-    private final UserRepository userRepository;
 
-    private final UserService userService;
+    private final OwnerRepository ownerRepository;
 
-    private final ReportCatService reportCatService;
     private final UserReportService userReportService;
+
+    private final OwnerService ownerService;
 
     public Map<Long, Boolean> waitingForReport = new HashMap<>();
     private final Map<Long, UserState> userStates = new HashMap<>();
@@ -59,13 +56,13 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     /**
      * Конструктор TelegramBotUpdatesListener
      */
-    public TelegramBotUpdatesListener(TelegramBot telegramBot, UserRepository userRepository,
-                                      UserService userService, ReportCatService reportCatService,
+    public TelegramBotUpdatesListener(TelegramBot telegramBot,
+                                      OwnerRepository ownerRepository,
+                                      OwnerService ownerService,
                                       UserReportService userReportService) {
         this.telegramBot = telegramBot;
-        this.userRepository = userRepository;
-        this.userService = userService;
-        this.reportCatService = reportCatService;
+        this.ownerRepository = ownerRepository;
+        this.ownerService = ownerService;
         this.userReportService = userReportService;
     }
 
@@ -95,30 +92,14 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
                     // Обработка нажатия кнопок
                     switch (data) {
-                        case "cats":
-                            sendCatsMenu(chatId);
-                            break;
-                        case "dogs":
-                            sendDogsMenu(chatId);
-                            break;
-                        case "info_cat":
-                            sendInfoShelterCat(chatId);
-                            break;
-                        case "info_dog":
-                            sendInfoShelterDog(chatId);
-                            break;
-                        case "take":
-                            sendTakeMessage(chatId);
-                            break;
-                        case "send":
-                            initiateReportDialog(chatId);
-                            break;
-                        case "help":
-                            sendHelpMessage(chatId);
-                            break;
-                        case "contacts":
-                            contactData(chatId);
-                            break;
+                        case "cats" -> sendCatsMenu(chatId);
+                        case "dogs" -> sendDogsMenu(chatId);
+                        case "info_cat" -> sendInfoShelterCat(chatId);
+                        case "info_dog" -> sendInfoShelterDog(chatId);
+                        case "take" -> sendTakeMessage(chatId);
+                        case "send" -> initiateReportDialog(chatId);
+                        case "help" -> sendHelpMessage(chatId);
+                        case "contacts" -> contactData(chatId);
                     }
                     // Отправка подтверждения о выполнении команды
                     AnswerCallbackQuery answerCallbackQuery = new AnswerCallbackQuery(callbackQuery.id());
@@ -169,7 +150,7 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                                 e.printStackTrace();
                             }
                         } else {
-                            SendPhoto sendPhoto = new SendPhoto(message.chat().id(), photo);
+                            SendPhoto sendPhoto = new SendPhoto(message.chat().id(), Objects.requireNonNull(photo));
                             telegramBot.execute(sendPhoto);
                         }
                     }
@@ -219,11 +200,6 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             waitingForReport.remove(chatId);
             userStates.remove(chatId);
         }
-    }
-
-    public static byte[] readPhotoBytes(String filePath) throws IOException {
-        Path path = Path.of(filePath);
-        return Files.readAllBytes(path);
     }
 
     private static File downloadFile(String filePath) {
@@ -382,8 +358,8 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             String userName = parts[0];
             String userPhone = parts[1];
             if (checkNumberForCorrect(userPhone)) {
-                AppUser appUser = new AppUser(chatId, userName, userPhone);
-                userRepository.save(appUser);
+                Owner owner = new Owner(chatId,userName,userPhone);
+                ownerRepository.save(owner);
                 saveUserInfoMessage(chatId);
                 userStates.remove(chatId);
             } else {
